@@ -1,4 +1,5 @@
 import os
+import shutil
 from typing import Dict
 
 import numpy as np
@@ -144,7 +145,6 @@ class Trainer:
 
     def archive(self):
         # 配置保存
-
         checkpoint_folder_name_ = self.model.name() \
                                   + '-' + self.dataset_name \
                                   + '-' + self.config['optim'].split('(')[0].split('.')[1] \
@@ -152,8 +152,10 @@ class Trainer:
                                   + '-' + get_time()
 
         self.config['checkpoint_folder_name'] = checkpoint_folder_name_
-        os.makedirs(f"./checkpoints/{self.config['checkpoint_folder_name']}", exist_ok=True)
-        save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
+        folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
+        os.makedirs(folder, exist_ok=True)
+        shutil.copy('./config.yaml',f'{folder}/config.yaml')
+        # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
     def train(self):
         self.archive()
