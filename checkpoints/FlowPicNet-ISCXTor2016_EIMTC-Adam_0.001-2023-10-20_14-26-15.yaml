@@ -1,0 +1,408 @@
+batch_size: 128
+checkpoint_folder_name: FlowPicNet-ISCXTor2016_EIMTC-Adam_0.001
+dataset: ISCXTor2016_EIMTC
+dataset_root: D:\data\trace\ISCXTor2016\tor\EIMTC-FlowPic
+epochs: 100
+loss_func: nn.CrossEntropyLoss()
+lr: 0.001
+lr_scheduler: ReduceLROnPlateau(self.opt,mode='min',factor=0.6,patience=2)
+model: FlowPicNet(self.num_classes)
+num_classes: 9
+optim: optim.Adam(params=self.model.parameters(), lr=self.lr,betas=[0.9, 0.999])
+
+# epoch: 0,
+# cur_lr: 0.001
+#   0%|          | 0/11 [00:00<?, ?it/s]D:\projects\internet_flow\FlowPic\trainer.py:112: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+#   pre = nn.Softmax()(out).argmax(dim=1)
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 2.234393826345118
+# val_loss: 2.161827564239502
+# val_acc: 18.9970%
+
+# epoch: 1,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 2.1661815817763164
+# val_loss: 2.1535911560058594
+# val_acc: 18.9970%
+
+# epoch: 2,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 2.1494031766565835
+# val_loss: 2.066751718521118
+# val_acc: 31.6869%
+
+# epoch: 3,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 2.2266233926866112
+# val_loss: 2.0560104846954346
+# val_acc: 33.5106%
+
+# epoch: 4,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.9642198899897134
+# val_loss: 1.7851977348327637
+# val_acc: 35.7903%
+
+# epoch: 5,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.9703929017229778
+# val_loss: 1.7377921342849731
+# val_acc: 34.9544%
+
+# epoch: 6,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.9393713881329793
+# val_loss: 1.716351866722107
+# val_acc: 40.9574%
+
+# epoch: 7,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.693022518623166
+# val_loss: 1.468988060951233
+# val_acc: 42.8571%
+
+# epoch: 8,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.5838923715963595
+# val_loss: 1.3474888801574707
+# val_acc: 43.9970%
+
+# epoch: 9,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.5204376730977036
+# val_loss: 1.2732949256896973
+# val_acc: 46.3526%
+
+# epoch: 10,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.5203154624962225
+# val_loss: 1.2119442224502563
+# val_acc: 50.5319%
+
+# epoch: 11,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.4554377205488158
+# val_loss: 1.276999592781067
+# val_acc: 51.6717%
+
+# epoch: 12,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.4164923196885644
+# val_loss: 1.2138640880584717
+# val_acc: 50.9119%
+
+# epoch: 13,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.358276606332965
+# val_loss: 1.1421586275100708
+# val_acc: 51.7477%
+
+# epoch: 14,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.3135269222463049
+# val_loss: 1.0925815105438232
+# val_acc: 52.8875%
+
+# epoch: 15,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.261166010324548
+# val_loss: 1.021127700805664
+# val_acc: 53.4195%
+
+# epoch: 16,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.2119024341426246
+# val_loss: 0.9889916181564331
+# val_acc: 54.4073%
+
+# epoch: 17,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.1879102853013248
+# val_loss: 0.967147946357727
+# val_acc: 55.8511%
+
+# epoch: 18,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.1436236989570827
+# val_loss: 0.9466582536697388
+# val_acc: 57.5228%
+
+# epoch: 19,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.129611024042455
+# val_loss: 0.9226716756820679
+# val_acc: 59.5745%
+
+# epoch: 20,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.092794500109626
+# val_loss: 0.9050120115280151
+# val_acc: 61.6261%
+
+# epoch: 21,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.0736551063089836
+# val_loss: 0.9000106453895569
+# val_acc: 60.9422%
+
+# epoch: 22,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.0491576874401511
+# val_loss: 0.8840059041976929
+# val_acc: 62.0061%
+
+# epoch: 23,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.0224794901725722
+# val_loss: 0.8717767596244812
+# val_acc: 63.3739%
+
+# epoch: 24,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 1.0023222567468155
+# val_loss: 0.8407940864562988
+# val_acc: 64.5137%
+
+# epoch: 25,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.9751037211134667
+# val_loss: 0.8562144637107849
+# val_acc: 64.0577%
+
+# epoch: 26,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.9541826411718275
+# val_loss: 0.8018984794616699
+# val_acc: 64.7416%
+
+# epoch: 27,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.924514308390094
+# val_loss: 0.7899549007415771
+# val_acc: 64.8176%
+
+# epoch: 28,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.9062504435821277
+# val_loss: 0.7666351199150085
+# val_acc: 65.5015%
+
+# epoch: 29,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.8709693320277261
+# val_loss: 0.7799665331840515
+# val_acc: 65.3495%
+
+# epoch: 30,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.8346754492419522
+# val_loss: 0.7604953050613403
+# val_acc: 66.2614%
+
+# epoch: 31,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.8284674355896507
+# val_loss: 0.7734882235527039
+# val_acc: 66.1094%
+
+# epoch: 32,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.8086824782374429
+# val_loss: 0.7328332662582397
+# val_acc: 66.7173%
+
+# epoch: 33,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7789468741634997
+# val_loss: 0.7387057542800903
+# val_acc: 65.8055%
+
+# epoch: 34,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7632542431536244
+# val_loss: 0.7967877388000488
+# val_acc: 65.3495%
+
+# epoch: 35,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7858985331727237
+# val_loss: 0.7556235790252686
+# val_acc: 66.4134%
+
+# epoch: 36,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7564419102741451
+# val_loss: 0.7204959988594055
+# val_acc: 66.8693%
+
+# epoch: 37,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7162419322242097
+# val_loss: 0.7055172324180603
+# val_acc: 67.3252%
+
+# epoch: 38,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7018828094005585
+# val_loss: 0.7187411189079285
+# val_acc: 67.4772%
+
+# epoch: 39,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6997041619587235
+# val_loss: 0.758471667766571
+# val_acc: 64.4377%
+
+# epoch: 40,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.7094251891916118
+# val_loss: 0.7682036757469177
+# val_acc: 67.0213%
+
+# epoch: 41,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6877124946473575
+# val_loss: 0.7178780436515808
+# val_acc: 67.4012%
+
+# epoch: 42,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6614461175007064
+# val_loss: 0.7037354111671448
+# val_acc: 67.7052%
+
+# epoch: 43,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6381493722792806
+# val_loss: 0.7183191180229187
+# val_acc: 67.7812%
+
+# epoch: 44,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6378850257024169
+# val_loss: 0.7225313186645508
+# val_acc: 67.0213%
+
+# epoch: 45,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6260253618948344
+# val_loss: 0.7089266180992126
+# val_acc: 67.7812%
+
+# epoch: 46,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6174339173225368
+# val_loss: 0.7380181550979614
+# val_acc: 67.5532%
+
+# epoch: 47,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.610412266786869
+# val_loss: 0.722456693649292
+# val_acc: 67.4772%
+
+# epoch: 48,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.5946577207707777
+# val_loss: 0.8474135994911194
+# val_acc: 62.3860%
+
+# epoch: 49,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.607299303408803
+# val_loss: 0.7777677178382874
+# val_acc: 66.5653%
+
+# epoch: 50,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.6025227345526218
+# val_loss: 0.7293474078178406
+# val_acc: 67.1733%
+
+# epoch: 51,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.5803091003809396
+# val_loss: 0.7482650876045227
+# val_acc: 67.0973%
+
+# epoch: 52,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.5774042878481673
+# val_loss: 0.7307278513908386
+# val_acc: 67.5532%
+
+# epoch: 53,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.5570572797754189
+# val_loss: 0.7530732154846191
+# val_acc: 66.9453%
+
+# epoch: 54,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.554592553889606
+# val_loss: 0.7472873330116272
+# val_acc: 66.6413%
+
+# epoch: 55,
+# cur_lr: 0.001
+#   0%|          | 0/41 [00:00<?, ?it/s]
+# train_loss: 0.5385630327197383
+# val_loss: 0.7633492946624756
+# val_acc: 66.9453%
+
+# epoch: 56,
+# cur_lr: 0.001

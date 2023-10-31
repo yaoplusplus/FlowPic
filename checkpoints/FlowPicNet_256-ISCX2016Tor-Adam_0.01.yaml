@@ -1,0 +1,12 @@
+batch_size: 256
+checkpoint_folder_name: FlowPicNet_256-ISCX2016Tor-Adam_0.01
+dataset: ISCX2016Tor
+epochs: 40
+info_batch: 10
+loss_func: nn.CrossEntropyLoss()
+lr: 0.01
+model: FlowPicNet_256(num_classes=8)
+optim: optim.Adam(params=config['model'].parameters(), lr=config['lr'],betas=[0.9,
+  0.999])
+time: 2023-10-13_14-54-04
+writer: SummaryWriter(log_dir=logdir, comment='loss and acc')

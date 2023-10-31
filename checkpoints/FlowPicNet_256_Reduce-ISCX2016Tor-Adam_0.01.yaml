@@ -1,0 +1,43 @@
+batch_size: 256
+checkpoint_folder_name: FlowPicNet_256_Reduce-ISCX2016Tor-Adam_0.01
+dataset: ISCX2016Tor
+epochs: 40
+info_batch: 10
+loss_func: nn.CrossEntropyLoss()
+lr: 0.01
+model: FlowPicNet_256_Reduce(num_classes=8)
+optim: optim.Adam(params=config['model'].parameters(), lr=config['lr'],betas=[0.9,
+  0.999])
+time: 2023-10-13_14-45-49
+writer: SummaryWriter(log_dir=logdir, comment='loss and acc')
+# 出问题了，准确率没有变化，修改该配置，查看是哪里的问题
+# just change FlowPicNet_256_Reduce to FlowPicNet_256 -> FlowPicNet_256-ISCX2016Tor-Adam_0.01.yaml
+#epoch: 0 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 1 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 2 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 3 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 4 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 5 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 6 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 7 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 8 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%
+#
+#epoch: 9 验证集损失: 0.007798933198113413
+#验证集准确率: 33.02515%

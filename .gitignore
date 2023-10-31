@@ -1,5 +1,4 @@
-/checkpoints/logcsv.py
 /config.yaml
-/checkpoints
 /.idea
 /*/__pycache__
+/datasets

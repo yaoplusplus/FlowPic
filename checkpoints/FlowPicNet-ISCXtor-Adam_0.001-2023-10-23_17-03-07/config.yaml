@@ -1,0 +1,712 @@
+batch_size: 128
+checkpoint_folder_name: FlowPicNet-ISCXtor-Adam_0.001
+dataset: ISCX
+dataset_root: D:\data\trace\processed\ISCXTor2016\FlowPic
+epochs: 100
+flag: Ture # means ISCXTor2016-tor
+loss_func: nn.CrossEntropyLoss()
+lr: 0.001
+lr_scheduler: ReduceLROnPlateau(self.opt,mode='min',factor=0.6,patience=2)
+model: FlowPicNet(self.num_classes)
+num_classes: 8
+optim: optim.Adam(params=self.model.parameters(), lr=self.lr,betas=[0.9, 0.999])
+
+#epoch: 0,
+#cur_lr: 0.001
+#
+#train_loss: 2.5813742840991303
+#val_loss: 2.074086904525757
+#val_acc: 13.5084%
+#
+#epoch: 1,
+#cur_lr: 0.001
+#
+#train_loss: 2.0673177277340606
+#val_loss: 2.0675389766693115
+#val_acc: 13.5084%
+#
+#epoch: 2,
+#cur_lr: 0.001
+#
+#train_loss: 2.06032535609077
+#val_loss: 2.0600218772888184
+#val_acc: 13.5084%
+#
+#epoch: 3,
+#cur_lr: 0.001
+#
+#train_loss: 2.0526440634446987
+#val_loss: 2.0510759353637695
+#val_acc: 28.4240%
+#
+#epoch: 4,
+#cur_lr: 0.001
+#
+#train_loss: 2.0426935939227833
+#val_loss: 2.0318117141723633
+#val_acc: 31.9887%
+#
+#epoch: 5,
+#cur_lr: 0.001
+#
+#train_loss: 2.0182874763713166
+#val_loss: 1.970499038696289
+#val_acc: 32.7392%
+#
+#epoch: 6,
+#cur_lr: 0.001
+#
+#train_loss: 1.9544275017345654
+#val_loss: 1.9076284170150757
+#val_acc: 37.4296%
+#
+#epoch: 7,
+#cur_lr: 0.001
+#
+#train_loss: 1.912867875660167
+#val_loss: 1.8544191122055054
+#val_acc: 37.5235%
+#
+#epoch: 8,
+#cur_lr: 0.001
+#
+#train_loss: 1.8412387423655565
+#val_loss: 1.6990009546279907
+#val_acc: 38.3677%
+#
+#epoch: 9,
+#cur_lr: 0.001
+#
+#train_loss: 1.8448775971637053
+#val_loss: 1.6749736070632935
+#val_acc: 42.0263%
+#
+#epoch: 10,
+#cur_lr: 0.001
+#
+#train_loss: 1.6058070870006786
+#val_loss: 1.3409615755081177
+#val_acc: 48.4991%
+#
+#epoch: 11,
+#cur_lr: 0.001
+#
+#train_loss: 1.5756240872775806
+#val_loss: 1.4194245338439941
+#val_acc: 46.9981%
+#
+#epoch: 12,
+#cur_lr: 0.001
+#
+#train_loss: 1.582459840704413
+#val_loss: 1.2781693935394287
+#val_acc: 54.1276%
+#
+#epoch: 13,
+#cur_lr: 0.001
+#
+#train_loss: 1.3654148718890022
+#val_loss: 1.2064642906188965
+#val_acc: 52.9081%
+#
+#epoch: 14,
+#cur_lr: 0.001
+#
+#train_loss: 1.312010564348277
+#val_loss: 1.121468424797058
+#val_acc: 54.8781%
+#
+#epoch: 15,
+#cur_lr: 0.001
+#
+#train_loss: 1.2533670882968342
+#val_loss: 1.092979907989502
+#val_acc: 55.5347%
+#
+#epoch: 16,
+#cur_lr: 0.001
+#
+#train_loss: 1.2335519755587858
+#val_loss: 1.0423728227615356
+#val_acc: 56.9418%
+#
+#epoch: 17,
+#cur_lr: 0.001
+#
+#train_loss: 1.1424206661827423
+#val_loss: 1.001085877418518
+#val_acc: 59.4747%
+#
+#epoch: 18,
+#cur_lr: 0.001
+#
+#train_loss: 1.1206219082369524
+#val_loss: 0.9649202823638916
+#val_acc: 60.1313%
+#
+#epoch: 19,
+#cur_lr: 0.001
+#
+#train_loss: 1.0764114343944717
+#val_loss: 0.985484778881073
+#val_acc: 63.3208%
+#
+#epoch: 20,
+#cur_lr: 0.001
+#
+#train_loss: 1.049559672089184
+#val_loss: 0.8898394703865051
+#val_acc: 67.9174%
+#
+#epoch: 21,
+#cur_lr: 0.001
+#
+#train_loss: 1.0042654091820997
+#val_loss: 0.8888007402420044
+#val_acc: 68.6679%
+#
+#epoch: 22,
+#cur_lr: 0.001
+#
+#train_loss: 0.9614235075081096
+#val_loss: 0.8276413679122925
+#val_acc: 71.9512%
+#
+#epoch: 23,
+#cur_lr: 0.001
+#
+#train_loss: 0.922073727583184
+#val_loss: 0.8106995820999146
+#val_acc: 73.7336%
+#
+#epoch: 24,
+#cur_lr: 0.001
+#
+#train_loss: 0.9000655671252924
+#val_loss: 0.7722298502922058
+#val_acc: 74.3902%
+#
+#epoch: 25,
+#cur_lr: 0.001
+#
+#train_loss: 0.8645532030393096
+#val_loss: 0.7700531482696533
+#val_acc: 77.0169%
+#
+#epoch: 26,
+#cur_lr: 0.001
+#
+#train_loss: 0.8331166030291248
+#val_loss: 0.6988919973373413
+#val_acc: 78.7992%
+#
+#epoch: 27,
+#cur_lr: 0.001
+#
+#train_loss: 1.0132952400428408
+#val_loss: 0.7739568948745728
+#val_acc: 77.2045%
+#
+#epoch: 28,
+#cur_lr: 0.001
+#
+#train_loss: 0.7860279826118666
+#val_loss: 0.7094606757164001
+#val_acc: 78.7054%
+#
+#epoch: 29,
+#cur_lr: 0.001
+#
+#train_loss: 0.7292973350952653
+#val_loss: 0.6664838790893555
+#val_acc: 81.1445%
+#
+#epoch: 30,
+#cur_lr: 0.001
+#
+#train_loss: 0.7103581774760696
+#val_loss: 0.6288518905639648
+#val_acc: 82.0826%
+#
+#epoch: 31,
+#cur_lr: 0.001
+#
+#train_loss: 0.6987961537259466
+#val_loss: 0.6590436697006226
+#val_acc: 81.1445%
+#
+#epoch: 32,
+#cur_lr: 0.001
+#
+#train_loss: 0.6521002350046354
+#val_loss: 0.6168034672737122
+#val_acc: 82.7392%
+#
+#epoch: 33,
+#cur_lr: 0.001
+#
+#train_loss: 0.6061793139533085
+#val_loss: 0.6107456684112549
+#val_acc: 83.5835%
+#
+#epoch: 34,
+#cur_lr: 0.001
+#
+#train_loss: 0.5954646728932858
+#val_loss: 0.585230827331543
+#val_acc: 84.1463%
+#
+#epoch: 35,
+#cur_lr: 0.001
+#
+#train_loss: 0.5815011793199707
+#val_loss: 0.5794022083282471
+#val_acc: 84.7092%
+#
+#epoch: 36,
+#cur_lr: 0.001
+#
+#train_loss: 0.5255243795759538
+#val_loss: 0.5750343799591064
+#val_acc: 84.3340%
+#
+#epoch: 37,
+#cur_lr: 0.001
+#
+#train_loss: 0.5413847765063539
+#val_loss: 0.5783437490463257
+#val_acc: 84.1463%
+#
+#epoch: 38,
+#cur_lr: 0.001
+#
+#train_loss: 0.4885305028189631
+#val_loss: 0.5598537921905518
+#val_acc: 84.3340%
+#
+#epoch: 39,
+#cur_lr: 0.001
+#
+#train_loss: 0.47101028296439085
+#val_loss: 0.5888994932174683
+#val_acc: 84.5216%
+#
+#epoch: 40,
+#cur_lr: 0.001
+#
+#train_loss: 0.49249695460585985
+#val_loss: 0.5527420043945312
+#val_acc: 84.6154%
+#
+#epoch: 41,
+#cur_lr: 0.001
+#
+#train_loss: 0.45877768756712184
+#val_loss: 0.6058676242828369
+#val_acc: 83.8649%
+#
+#epoch: 42,
+#cur_lr: 0.001
+#
+#train_loss: 0.4514913026462583
+#val_loss: 0.557400643825531
+#val_acc: 84.8030%
+#
+#epoch: 43,
+#cur_lr: 0.001
+#
+#train_loss: 0.43110814120839624
+#val_loss: 0.5582330226898193
+#val_acc: 84.6154%
+#
+#epoch: 44,
+#cur_lr: 0.001
+#
+#train_loss: 0.410305205732584
+#val_loss: 0.5522220730781555
+#val_acc: 85.1782%
+#
+#epoch: 45,
+#cur_lr: 0.001
+#
+#train_loss: 0.3812011010835276
+#val_loss: 0.5610235929489136
+#val_acc: 85.4597%
+#
+#epoch: 46,
+#cur_lr: 0.001
+#
+#train_loss: 0.3746580082704039
+#val_loss: 0.5569379925727844
+#val_acc: 85.6473%
+#
+#epoch: 47,
+#cur_lr: 0.001
+#
+#train_loss: 0.35488490782239857
+#val_loss: 0.5526734590530396
+#val_acc: 85.2720%
+#
+#epoch: 48,
+#cur_lr: 0.001
+#
+#train_loss: 0.3228986825355712
+#val_loss: 0.5724169015884399
+#val_acc: 85.4597%
+#
+#epoch: 49,
+#cur_lr: 0.001
+#
+#train_loss: 0.33151262050823255
+#val_loss: 0.5491965413093567
+#val_acc: 85.5535%
+#
+#epoch: 50,
+#cur_lr: 0.001
+#
+#train_loss: 0.33094348889939923
+#val_loss: 0.5650812387466431
+#val_acc: 85.3659%
+#
+#epoch: 51,
+#cur_lr: 0.001
+#
+#train_loss: 0.3239853265010478
+#val_loss: 0.5725581645965576
+#val_acc: 85.5535%
+#
+#epoch: 52,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2951558924225323
+#val_loss: 0.5723741054534912
+#val_acc: 85.6473%
+#
+#epoch: 53,
+#cur_lr: 0.0006
+#
+#train_loss: 0.28699196176603436
+#val_loss: 0.5849832892417908
+#val_acc: 85.8349%
+#
+#epoch: 54,
+#cur_lr: 0.0006
+#
+#train_loss: 0.27192725109703403
+#val_loss: 0.5718966722488403
+#val_acc: 85.9287%
+#
+#epoch: 55,
+#cur_lr: 0.0006
+#
+#train_loss: 0.270424589405165
+#val_loss: 0.5779901742935181
+#val_acc: 86.0225%
+#
+#epoch: 56,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2695560007191756
+#val_loss: 0.585884690284729
+#val_acc: 86.0225%
+#
+#epoch: 57,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2763142170768012
+#val_loss: 0.587351381778717
+#val_acc: 86.2101%
+#
+#epoch: 58,
+#cur_lr: 0.0006
+#
+#train_loss: 0.26059010263313265
+#val_loss: 0.597501814365387
+#val_acc: 86.0225%
+#
+#epoch: 59,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2500658171415767
+#val_loss: 0.6059852838516235
+#val_acc: 85.8349%
+#
+#epoch: 60,
+#cur_lr: 0.0006
+#
+#train_loss: 0.24476099742905183
+#val_loss: 0.6002969741821289
+#val_acc: 85.9287%
+#
+#epoch: 61,
+#cur_lr: 0.0006
+#
+#train_loss: 0.23084292738862774
+#val_loss: 0.6208275556564331
+#val_acc: 86.1163%
+#
+#epoch: 62,
+#cur_lr: 0.0006
+#
+#train_loss: 0.24248076897278867
+#val_loss: 0.6100379824638367
+#val_acc: 86.3978%
+#
+#epoch: 63,
+#cur_lr: 0.0006
+#
+#train_loss: 0.23460392187596024
+#val_loss: 0.6123546957969666
+#val_acc: 86.4916%
+#
+#epoch: 64,
+#cur_lr: 0.0006
+#
+#train_loss: 0.22716583512887797
+#val_loss: 0.6032986640930176
+#val_acc: 86.6792%
+#
+#epoch: 65,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2216543367899516
+#val_loss: 0.6172168850898743
+#val_acc: 86.3039%
+#
+#epoch: 66,
+#cur_lr: 0.0006
+#
+#train_loss: 0.21523099274867596
+#val_loss: 0.6143291592597961
+#val_acc: 86.1163%
+#
+#epoch: 67,
+#cur_lr: 0.0006
+#
+#train_loss: 0.21228849933729232
+#val_loss: 0.6098983883857727
+#val_acc: 86.4916%
+#
+#epoch: 68,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2160617576857262
+#val_loss: 0.610752284526825
+#val_acc: 86.1163%
+#
+#epoch: 69,
+#cur_lr: 0.0006
+#
+#train_loss: 0.20260478161713658
+#val_loss: 0.6260790824890137
+#val_acc: 85.2720%
+#
+#epoch: 70,
+#cur_lr: 0.0006
+#
+#train_loss: 0.21584233155419283
+#val_loss: 0.6606010794639587
+#val_acc: 85.4597%
+#
+#epoch: 71,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2047316395841977
+#val_loss: 0.644363284111023
+#val_acc: 85.7411%
+#
+#epoch: 72,
+#cur_lr: 0.0006
+#
+#train_loss: 0.2120580826749039
+#val_loss: 0.637262225151062
+#val_acc: 85.5535%
+#
+#epoch: 73,
+#cur_lr: 0.00035999999999999997
+#
+#train_loss: 0.21178507383036263
+#val_loss: 0.6889526844024658
+#val_acc: 85.5535%
+#
+#epoch: 74,
+#cur_lr: 0.00035999999999999997
+#
+#train_loss: 0.17864653039449715
+#val_loss: 0.6724317669868469
+#val_acc: 85.8349%
+
+#epoch: 75,
+#cur_lr: 0.00035999999999999997
+#
+#train_loss: 0.18628845689818263
+#val_loss: 0.6706599593162537
+#val_acc: 85.5535%
+#
+#epoch: 76,
+#cur_lr: 0.00035999999999999997
+#
+#train_loss: 0.18229578425833845
+#val_loss: 0.6936415433883667
+#val_acc: 85.5535%
+#
+#epoch: 77,
+#cur_lr: 0.00035999999999999997
+#
+#train_loss: 0.18104596835944584
+#val_loss: 0.6929171681404114
+#val_acc: 85.6473%
+#
+#epoch: 78,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.17862694454036981
+#val_loss: 0.703484833240509
+#val_acc: 85.7411%
+#
+#epoch: 79,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.17693619588937828
+#val_loss: 0.697418749332428
+#val_acc: 85.7411%
+#
+#epoch: 80,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.1706733673619216
+#val_loss: 0.7015483975410461
+#val_acc: 85.7411%
+#
+#epoch: 81,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.16773743812261863
+#val_loss: 0.7079431414604187
+#val_acc: 85.8349%
+#
+#epoch: 82,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.168967847534291
+#val_loss: 0.705560564994812
+#val_acc: 85.6473%
+#
+#epoch: 83,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.17100763893412316
+#val_loss: 0.7057301998138428
+#val_acc: 85.8349%
+#
+#epoch: 84,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.1659237418036141
+#val_loss: 0.7002633810043335
+#val_acc: 85.9287%
+#
+#epoch: 85,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.16179090824238407
+#val_loss: 0.7074958682060242
+#val_acc: 85.8349%
+#
+#epoch: 86,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.16057709111448595
+#val_loss: 0.7141532301902771
+#val_acc: 85.8349%
+#
+#epoch: 87,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.16652937201605014
+#val_loss: 0.720420241355896
+#val_acc: 85.7411%
+#
+#epoch: 88,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15788317762096138
+#val_loss: 0.7263451814651489
+#val_acc: 85.6473%
+#
+#epoch: 89,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.1659898228724213
+#val_loss: 0.7283459901809692
+#val_acc: 85.7411%
+#
+#epoch: 90,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15515439360238173
+#val_loss: 0.7243301868438721
+#val_acc: 85.9287%
+#
+#epoch: 91,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15761937061324716
+#val_loss: 0.7251566052436829
+#val_acc: 85.8349%
+#
+#epoch: 92,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.16295246371780248
+#val_loss: 0.7336562275886536
+#val_acc: 86.0225%
+#
+#epoch: 93,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.14931616625365088
+#val_loss: 0.7401196956634521
+#val_acc: 85.9287%
+#
+#epoch: 94,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15850699613528216
+#val_loss: 0.7369775176048279
+#val_acc: 86.0225%
+#
+#epoch: 95,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15780972819159025
+#val_loss: 0.7284750938415527
+#val_acc: 86.0225%
+#
+#epoch: 96,
+#cur_lr: 0.00021599999999999996
+#
+#train_loss: 0.15012241321999362
+#val_loss: 0.74348384141922
+#val_acc: 86.0225%
+#
+#epoch: 97,
+#cur_lr: 0.00012959999999999998
+#
+#train_loss: 0.14761124071939027
+#val_loss: 0.7516141533851624
+#val_acc: 86.0225%
+#
+#epoch: 98,
+#cur_lr: 0.00012959999999999998
+#
+#train_loss: 0.15038982836652875
+#val_loss: 0.7547491192817688
+#val_acc: 86.0225%
+#
+#epoch: 99,
+#cur_lr: 0.00012959999999999998
+#
+#train_loss: 0.1482733186772641
+#val_loss: 0.7565433979034424
+#val_acc: 86.0225%

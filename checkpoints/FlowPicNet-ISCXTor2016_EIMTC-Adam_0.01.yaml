@@ -1,0 +1,12 @@
+batch_size: 256
+checkpoint_folder_name: FlowPicNet-ISCXTor2016_EIMTC-Adam_0.01
+dataset: ISCXTor2016_EIMTC
+epochs: 40
+info_batch: 10
+loss_func: nn.CrossEntropyLoss()
+lr: 0.01
+model: FlowPicNet(num_classes=9)
+optim: optim.Adam(params=config['model'].parameters(), lr=config['lr'],betas=[0.9,
+  0.999])
+time: 2023-10-17_20-34-01
+writer: SummaryWriter(log_dir=logdir, comment='loss and acc')

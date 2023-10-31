@@ -1,0 +1,8 @@
+batch_size: 128
+dataset: FlowPicData
+epochs: 40
+info_batch: 10
+loss_func: nn.CrossEntropyLoss()
+model: FlowPicNet(num_classes=5)
+optim: optim.Adam
+writer: SummaryWriter(log_dir=logdir, comment='loss and acc')
