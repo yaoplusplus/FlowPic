@@ -184,6 +184,10 @@ class ISCX(BaseEIMTCFlowPicDataset):
         file_path, label = self.data.iloc[index]
         if hasattr(self, 'part'):
             label = self.map[label]
+        # 将windows下的路径转换为linux下的
+        if os.name =='posix':
+            file_path = file_path.replace('D:\\data\\trace\\processed','/home/cape/data/trace')
+            file_path = file_path.replace('\\','/')
         # load .npz file
         feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
