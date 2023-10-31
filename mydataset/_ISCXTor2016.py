@@ -8,7 +8,7 @@ from typing import List
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
-from mydataset._basedataset import BaseEIMTCFlowPicDataset
+from base._basedataset import BaseEIMTCFlowPicDataset
 
 
 def construct_matrix(data: pd.DataFrame, block_size=5, resolution=256):
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     #     print(y)
     #     exit(0)
 
-    d = ISCX(root=r'D:\data\trace\processed\ISCXTor2016\MyFlowPic', train=True, flag=False, part=None)
+    d = ISCX(root='/home/cape/data/trace/ISCXTor2016/MyFlowPic', train=True, flag=False, part=None)
     # train_loader = DataLoader(dataset=d, batch_size=1, shuffle=True)
     # count = 0
     print(d.get_num_classes())  # 1208
