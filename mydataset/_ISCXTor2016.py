@@ -239,6 +239,44 @@ class ISCX(BaseEIMTCFlowPicDataset):
         part = str(self.part) if hasattr(self, 'part') else ''
         return base + subclass + part
 
+class JointISCX:
+    def __init__(self, roots: List[str], train:bool, flag: bool = False, part: List[int] = None):
+        assert len(roots) == 2 
+        self.roots = roots
+        self.train = train
+        self.flag = flag
+        self.part= part
+        
+        self.load_dataset()
+        assert self.dataset_a.get_num_classes() == self.dataset_b.get_num_classes()
+        assert len(self.dataset_a) == len(self.dataset_b)
+        self.num_classes = self.dataset_a.get_num_classes()
+    
+    def load_dataset(self):
+        # 横跨FlowPic和MyFlowPic
+        self.dataset_a = ISCX(root=roots[0],train=self.train,flag=self.flag,part=self.part)
+        self.dataset_b = ISCX(root=roots[1],train=self.train,flag=self.flag,part=self.part)
+    
+    def __len__(self):
+        return len(self.dataset_a)
+    
+    def __getitem__(self, index):
+        # shuffle应该是false?不然两个数据集在一个index下，访问的数据可能不一样
+        flowpic_a, label = self.dataset_a(index)
+        flowpic_b, label_ = self.dataset_b(index)
+        assert np.nonzero(flowpic_a) == np.nonzero(flowpic_b)
+        assert label == label_
+        return torch.concat(flowpic_a,flowpic_b), label
+        
+    def name(self):
+        return self.dataset_a.name()+'_Joint'
+
+    def get_num_classes(self):
+        return self.num_classes
+    
+    
+
+
 
 if __name__ == "__main__":
     # d = ISCXTorData(flag='train')
@@ -248,7 +286,9 @@ if __name__ == "__main__":
     #     print(y)
     #     exit(0)
 
-    d = ISCX(root='/home/cape/data/trace/ISCXTor2016/MyFlowPic', train=True, flag=False, part=None)
+    # d = ISCX(root='/home/cape/data/trace/ISCXTor2016/MyFlowPic', train=True, flag=False, part=None)
+    roots = [r'D:\data\trace\processed\ISCXVPN2016\FlowPic',r'D:\data\trace\processed\ISCXVPN2016\MyFlowPic']
+    d = JointISCX(roots=roots,train=True,flag=True)
     # train_loader = DataLoader(dataset=d, batch_size=1, shuffle=True)
     # count = 0
     print(d.get_num_classes())  # 1208
