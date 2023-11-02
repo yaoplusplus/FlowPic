@@ -54,7 +54,7 @@ class ISCX2016Tor(Dataset):
         self.data = pd.read_csv(os.path.join(self.root, f'{self.flag}.csv'))
 
     def __len__(self):
-        return len(self.data)
+        return len(self.dataset_a.data)
 
     def __getitem__(self, index):
         file_path, label = self.data.iloc[index]
@@ -254,44 +254,25 @@ class JointISCX:
     
     def load_dataset(self):
         # 横跨FlowPic和MyFlowPic
-        self.dataset_a = ISCX(root=roots[0],train=self.train,flag=self.flag,part=self.part)
-        self.dataset_b = ISCX(root=roots[1],train=self.train,flag=self.flag,part=self.part)
+        self.dataset_a = ISCX(root=self.roots[0],train=self.train,flag=self.flag,part=self.part)
+        self.dataset_b = ISCX(root=self.roots[1],train=self.train,flag=self.flag,part=self.part)
     
     def __len__(self):
         return len(self.dataset_a)
     
     def __getitem__(self, index):
         # shuffle应该是false?不然两个数据集在一个index下，访问的数据可能不一样
-        flowpic_a, label = self.dataset_a(index)
-        flowpic_b, label_ = self.dataset_b(index)
-        assert np.nonzero(flowpic_a) == np.nonzero(flowpic_b)
+        flowpic_a, label = self.dataset_a.__getitem__(index)
+        flowpic_b, label_ = self.dataset_b.__getitem__(index)
+        # 这里转置是因为数据集的X，y坐标
+        # print(np.nonzero(flowpic_a.T))
+        # print(np.nonzero(flowpic_b))
+        assert torch.equal(np.nonzero(flowpic_a.T), np.nonzero(flowpic_b))
         assert label == label_
-        return torch.concat(flowpic_a,flowpic_b), label
+        return torch.concat([flowpic_a,flowpic_b],dim=0), label
         
     def name(self):
         return self.dataset_a.name()+'_Joint'
 
     def get_num_classes(self):
         return self.num_classes
-    
-    
-
-
-
-if __name__ == "__main__":
-    # d = ISCXTorData(flag='train')
-    # train_loader = DataLoader(dataset=d, batch_size=1, shuffle=True)
-    # for x, y in train_loader:
-    #     print(x.shape, y.shape)
-    #     print(y)
-    #     exit(0)
-
-    # d = ISCX(root='/home/cape/data/trace/ISCXTor2016/MyFlowPic', train=True, flag=False, part=None)
-    roots = [r'D:\data\trace\processed\ISCXVPN2016\FlowPic',r'D:\data\trace\processed\ISCXVPN2016\MyFlowPic']
-    d = JointISCX(roots=roots,train=True,flag=True)
-    # train_loader = DataLoader(dataset=d, batch_size=1, shuffle=True)
-    # count = 0
-    print(d.get_num_classes())  # 1208
-    print(len(d.data))  # 1208
-    print(d.name())
-    pass
