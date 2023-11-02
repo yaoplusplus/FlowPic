@@ -10,6 +10,14 @@ class BaseEIMTCFlowPicDataset(Dataset):
     使用这个类的数据集的基础是有一个train.csv和test.csv文件，文件中有file_path和label_id两列
     """
     def __init__(self, root: str, train: bool = True, transform=None, target_transform=None):
+        """
+
+        Args:
+            root: the dir of metadata.csv
+            train: flag
+            transform: torchvision.transform
+            target_transform: torchvision.transform
+        """
         self.root = root
         self.train = train
         self.transform = transform

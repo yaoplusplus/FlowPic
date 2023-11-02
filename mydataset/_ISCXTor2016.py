@@ -165,8 +165,11 @@ class ISCX(BaseEIMTCFlowPicDataset):
         之后被丢弃，label_id也会进行重新映射
         """
 
-    def __init__(self, root, train, flag: bool = False, part: List = None):
-        super(ISCX, self).__init__(root, train)
+    def __init__(self, dataset: str, feature_method: str, flag: bool, train: bool, root='../dataset',
+                 part: List = None):
+        # dataset指向以数据集为名称的文件夹，feature指代FlowPic或者MyFlowPic或其他方法，也就是子文件夹名,flag指向nonTor/tor、VPN/nonVPN
+        self.feature_method = feature_method
+        super(ISCX, self).__init__(os.path.join(root, self.feature_method), train)
         self.flag = flag
         self.data = self.load_data()
         self.num_classes = self.get_num_classes()
@@ -185,9 +188,9 @@ class ISCX(BaseEIMTCFlowPicDataset):
         if hasattr(self, 'part'):
             label = self.map[label]
         # 将windows下的路径转换为linux下的
-        if os.name =='posix':
-            file_path = file_path.replace('D:\\data\\trace\\processed','/home/cape/data/trace')
-            file_path = file_path.replace('\\','/')
+        if os.name == 'posix':
+            file_path = file_path.replace('D:\\data\\trace\\processed', '/home/cape/data/trace')
+            file_path = file_path.replace('\\', '/')
         # load .npz file
         feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
@@ -218,7 +221,7 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
     def get_num_classes(self):
         dirs_count = 0
-        files_or_dirs = glob.glob(os.path.join(self.root, self.flag, '*'))
+        files_or_dirs = glob.glob(os.path.join(self.root, self.feature_method, self.flag, '*'))
         for file_or_dir in files_or_dirs:
             if os.path.isdir(file_or_dir):
                 dirs_count += 1
@@ -239,27 +242,66 @@ class ISCX(BaseEIMTCFlowPicDataset):
         part = str(self.part) if hasattr(self, 'part') else ''
         return base + subclass + part
 
+
+class SimpleDataset:
+    def __init__(self, dataset: str, feature_method: str, train: bool, root='../dataset'):
+        self.dataset = dataset
+        self.feature_method = feature_method
+        self.root = os.path.join(root, self.dataset, self.feature_method)
+        self.train = train
+        self.data = self.load_data()
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        file_path, label = self.data.iloc[index]
+        feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
+        feature = torch.FloatTensor(feature)  # dtype: torch.float32
+        label = torch.LongTensor([label])  # dtype: torch.int64
+        return feature, label
+
+    def name(self):
+        return '_'.join([self.dataset, self.feature_method])
+
+    def get_num_classes(self):
+        dirs_count = 0
+        files_or_dirs = glob.glob(os.path.join(self.root, '*'))
+        for file_or_dir in files_or_dirs:
+            if os.path.isdir(file_or_dir):
+                dirs_count += 1
+        return dirs_count
+
+    def load_data(self):
+        # metadata = pd.read_csv(os.path.join(self.root, 'metadata.csv'))
+        # train_data = pd.read_csv(os.path.join(self.root, 'train.csv'))
+        # test_data = pd.read_csv(os.path.join(self.root, 'test.csv'))
+        # assert (len(train_data) + len(test_data)) == len(metadata), '训练/测试数据总数与metadata不符'
+        file = 'train.csv' if self.train else 'test.csv'
+        return pd.read_csv(os.path.join(self.root, file))
+
+
 class JointISCX:
-    def __init__(self, roots: List[str], train:bool, flag: bool = False, part: List[int] = None):
-        assert len(roots) == 2 
+    def __init__(self, roots: List[str], train: bool, flag: bool = False, part: List[int] = None):
+        assert len(roots) == 2
         self.roots = roots
         self.train = train
         self.flag = flag
-        self.part= part
-        
+        self.part = part
+
         self.load_dataset()
         assert self.dataset_a.get_num_classes() == self.dataset_b.get_num_classes()
         assert len(self.dataset_a) == len(self.dataset_b)
         self.num_classes = self.dataset_a.get_num_classes()
-    
+
     def load_dataset(self):
         # 横跨FlowPic和MyFlowPic
-        self.dataset_a = ISCX(root=self.roots[0],train=self.train,flag=self.flag,part=self.part)
-        self.dataset_b = ISCX(root=self.roots[1],train=self.train,flag=self.flag,part=self.part)
-    
+        self.dataset_a = ISCX(root=self.roots[0], train=self.train, flag=self.flag, part=self.part)
+        self.dataset_b = ISCX(root=self.roots[1], train=self.train, flag=self.flag, part=self.part)
+
     def __len__(self):
         return len(self.dataset_a)
-    
+
     def __getitem__(self, index):
         # shuffle应该是false?不然两个数据集在一个index下，访问的数据可能不一样
         flowpic_a, label = self.dataset_a.__getitem__(index)
@@ -269,10 +311,10 @@ class JointISCX:
         # print(np.nonzero(flowpic_b))
         assert torch.equal(np.nonzero(flowpic_a.T), np.nonzero(flowpic_b))
         assert label == label_
-        return torch.concat([flowpic_a,flowpic_b],dim=0), label
-        
+        return torch.concat([flowpic_a, flowpic_b], dim=0), label
+
     def name(self):
-        return self.dataset_a.name()+'_Joint'
+        return self.dataset_a.name() + '_Joint'
 
     def get_num_classes(self):
         return self.num_classes

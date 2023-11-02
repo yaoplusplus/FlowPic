@@ -80,13 +80,12 @@ if __name__ == '__main__':
     # test_loss_batch('flowpic_data_config.yaml', logdir='')
     # compare_model_params(FlowPicNet().state_dict(), FlowPicNet().state_dict())
     # d = ISCX(root='/home/cape/data/trace/ISCXVPN2016/MyFlowPic', train=True, flag=True, part=None)
-    base = '/home/cape/data/trace'
-    
     # tor:      resplit(same metadata.csv but file_path)
     # nonTor:   their metadata.csv has different lines
     # VPN:      all fine
     # csv_cmp(os.path.join(base,'ISCXVPN2016','FlowPic','VPN','train.csv'),os.path.join(base,'ISCXVPN2016','MyFlowPic','VPN','train.csv'))
 
     # test_dataset()
-    FlowPic2MyFlowPic()
+    # FlowPic2MyFlowPic()
+    print(len(os.listdir('./dataset/ISCXTor2016/FlowPic/tor/audio')))
     pass
