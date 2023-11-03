@@ -19,27 +19,13 @@ import yaml
 import matplotlib.pyplot as plt
 
 import mydataset
-from mydataset import ISCX2016Tor, ISCX, JointISCX
+from mydataset import ISCX2016Tor, ISCX, JointISCX, SimpleDataset
 from trainer import Trainer
 from utils import get_time
 
 # global settings
 torch.manual_seed(0)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-PATH_PREFIX = "./datasets/"
-
-def csv_cmp(file1,file2):
-    f1 = pd.read_csv(file1)
-    f2 = pd.read_csv(file2)
-    if len(f1) == len(f2):
-        cmp_res = f1==f2
-    else:
-        print('different line numbers')
-        return 0
-    cmp_res = cmp_res['label'].to_list()
-    print(sum(cmp_res))
-    print(len(cmp_res))
 
 
 def test_dataset():
@@ -59,19 +45,7 @@ def test_dataset():
     print(flowpic.shape)
     print(label)
 
-def FlowPic2MyFlowPic():
-    file = './dataset/ISCXTor2016/FlowPic/nonTor/Browsing/flowpic-1438105370199-10.152.152.11-60375-216.58.210.35-443-6-dst2src.npz'
-    flowpic = np.load(file)['flowpic']
-    print(np.nonzero(flowpic))
-    for loc in zip(np.nonzero(flowpic)):
-        print(loc)
-        x = loc[0]
-        y= loc [1]
-        print(flowpic[x][y])
-        flowpic[x][y] = flowpic[x][y]*y
-        print(flowpic[x][y])
-    np.savez_compressed(save_path='./test/test.npz',flowpic=flowpic)
-    pass
+
 
 if __name__ == '__main__':
     # 
@@ -79,13 +53,15 @@ if __name__ == '__main__':
     #             logdir=f'./log/{get_time()}').train()
     # test_loss_batch('flowpic_data_config.yaml', logdir='')
     # compare_model_params(FlowPicNet().state_dict(), FlowPicNet().state_dict())
-    # d = ISCX(root='/home/cape/data/trace/ISCXVPN2016/MyFlowPic', train=True, flag=True, part=None)
-    # tor:      resplit(same metadata.csv but file_path)
-    # nonTor:   their metadata.csv has different lines
-    # VPN:      all fine
-    # csv_cmp(os.path.join(base,'ISCXVPN2016','FlowPic','VPN','train.csv'),os.path.join(base,'ISCXVPN2016','MyFlowPic','VPN','train.csv'))
 
     # test_dataset()
-    # FlowPic2MyFlowPic()
-    print(len(os.listdir('./dataset/ISCXTor2016/FlowPic/tor/audio')))
+    d = SimpleDataset(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
+    loader = DataLoader(d,batch_size=1,shuffle=False)
+    for f,l in loader:
+        print(f.shape,l)
+        exit(0)
+    # print(len(d))
+    # print(d.name())
+    
+
     pass
