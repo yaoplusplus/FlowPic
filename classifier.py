@@ -78,14 +78,17 @@ class LeNet(nn.Module):
         return output
 
 
-class FlowPicNet_256(FlowPicNet):
+class FlowPicNet_adaptive(FlowPicNet):
     """
-    只修改了self.linear1的in_features的大小，以适应256*256的输入尺寸
+    可以修改self.linear1的in_features的大小，以适应不同的输入尺寸
+    3000*1500 -> 9000
+    1500*1500 -> 4500
+    256*256   -> 90
     """
 
-    def __init__(self, num_classes, show_temp_out=False):
+    def __init__(self, num_classes, show_temp_out=False,liner1_in_feature=4500):
         super().__init__(num_classes=num_classes, show_temp_out=show_temp_out)
-        self.linear1 = Sequential(Linear(in_features=80, out_features=64), ReLU(), Dropout(0.5))
+        self.linear1 = Sequential(Linear(in_features=liner1_in_feature, out_features=64), ReLU(), Dropout(0.5))
 
 
 def resnet(num_classes):
@@ -96,7 +99,7 @@ def resnet(num_classes):
     return net
 
 
-class FlowPicNet_256_Reduce(FlowPicNet_256):
+# class FlowPicNet_256_Reduce(FlowPicNet_256):
     """
     在FlowPicNet_256的基础上去掉了self.drop1 和self.linear1的drop_out
     """
@@ -133,15 +136,9 @@ class FlowPicNet_256_Reduce(FlowPicNet_256):
 
 
 if __name__ == '__main__':
-    # # code for test FlowPicNet
-    # t = torch.rand([1, 1500, 1500])
-    # print(t.shape)
-    # model = net(5, True)
-    # print(model(t))
-
     # code for test ResNet()
-    model = FlowPicNet_256_Reduce(num_classes=4, show_temp_out=True)
-    t = torch.unsqueeze(torch.rand([1, 256, 256]), 0)
+    model = FlowPicNet_adaptive(num_classes=4, show_temp_out=True, liner1_in_feature=9000)
+    t = torch.unsqueeze(torch.rand([1, 3000, 1500]), 0)
     print(model(t))
     # pprint(model(t))
     pass

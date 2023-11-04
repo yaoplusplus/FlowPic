@@ -55,11 +55,13 @@ if __name__ == '__main__':
     # compare_model_params(FlowPicNet().state_dict(), FlowPicNet().state_dict())
 
     # test_dataset()
-    d = SimpleDataset(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
+    # d = SimpleDataset(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
+    d = JointISCX(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
     loader = DataLoader(d,batch_size=1,shuffle=False)
     for f,l in loader:
         print(f.shape,l)
         exit(0)
+    
     # print(len(d))
     # print(d.name())
     

@@ -20,7 +20,8 @@ def construct_matrix(data: pd.DataFrame, block_size=5, resolution=256):
     # construct histogram
     hist_bins = resolution
     bin_range = [[0, time_scale], packet_range]
-    hist = np.histogram2d(data.arrival_time, data.packet_size, bins=hist_bins, range=bin_range)
+    hist = np.histogram2d(data.arrival_time, data.packet_size,
+                          bins=hist_bins, range=bin_range)
     flow_matrix = hist[0]
     assert flow_matrix.max() > 0.0, 'Zero Matrix!'
     flow_matrix = flow_matrix / flow_matrix.max()
@@ -93,7 +94,8 @@ class PartISCX2016Tor(Dataset):
         self.data = pd.read_csv(os.path.join(self.root, f'{self.flag}.csv'))
         # drop class
         for drop_class in self.drop_classes:
-            self.data = self.data.drop(self.data[self.data['label'] == drop_class].index)
+            self.data = self.data.drop(
+                self.data[self.data['label'] == drop_class].index)
 
     def __len__(self):
         return len(self.data)
@@ -133,7 +135,8 @@ class ISCXTor2016EIMTC(BaseEIMTCFlowPicDataset):
         if hasattr(self, 'part'):
             label = self.map[label]
         # load .npz file
-        feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
+        feature = np.load(file_path)['flowpic'].astype(
+            float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
         label = torch.LongTensor([label])  # dtype: torch.int64
         return feature, label
@@ -144,7 +147,8 @@ class ISCXTor2016EIMTC(BaseEIMTCFlowPicDataset):
             if class_ not in self.part:
                 self.drop_classes.append(class_)
         for drop_class in self.drop_classes:
-            self.data = self.data.drop(self.data[self.data['label'] == drop_class].index)
+            self.data = self.data.drop(
+                self.data[self.data['label'] == drop_class].index)
 
     def set_map(self):
         index = 0
@@ -169,7 +173,8 @@ class ISCX(BaseEIMTCFlowPicDataset):
                  part: List = None):
         # dataset指向以数据集为名称的文件夹，feature指代FlowPic或者MyFlowPic或其他方法，也就是子文件夹名,flag指向nonTor/tor、VPN/nonVPN
         self.feature_method = feature_method
-        super(ISCX, self).__init__(os.path.join(root, self.feature_method), train)
+        super(ISCX, self).__init__(os.path.join(
+            root, self.feature_method), train)
         self.flag = flag
         self.data = self.load_data()
         self.num_classes = self.get_num_classes()
@@ -189,10 +194,12 @@ class ISCX(BaseEIMTCFlowPicDataset):
             label = self.map[label]
         # 将windows下的路径转换为linux下的
         if os.name == 'posix':
-            file_path = file_path.replace('D:\\data\\trace\\processed', '/home/cape/data/trace')
+            file_path = file_path.replace(
+                'D:\\data\\trace\\processed', '/home/cape/data/trace')
             file_path = file_path.replace('\\', '/')
         # load .npz file
-        feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
+        feature = np.load(file_path)['flowpic'].astype(
+            float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
         label = torch.LongTensor([label])  # dtype: torch.int64
         return feature, label
@@ -203,7 +210,8 @@ class ISCX(BaseEIMTCFlowPicDataset):
             if class_ not in self.part:
                 self.drop_classes.append(class_)
         for drop_class in self.drop_classes:
-            self.data = self.data.drop(self.data[self.data['label'] == drop_class].index)
+            self.data = self.data.drop(
+                self.data[self.data['label'] == drop_class].index)
 
     def set_map(self):
         index = 0
@@ -221,7 +229,8 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
     def get_num_classes(self):
         dirs_count = 0
-        files_or_dirs = glob.glob(os.path.join(self.root, self.feature_method, self.flag, '*'))
+        files_or_dirs = glob.glob(os.path.join(
+            self.root, self.feature_method, self.flag, '*'))
         for file_or_dir in files_or_dirs:
             if os.path.isdir(file_or_dir):
                 dirs_count += 1
@@ -244,19 +253,25 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
 
 class SimpleDataset:
-    def __init__(self, dataset: str, feature_method: str, train: bool, root='../dataset'):
+    def __init__(self, dataset: str, feature_method: str, train: bool, root):
+        """
+        dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
+        feature_method : FlowPic, MyFlowPic, Joint
+        """
         self.dataset = dataset
         self.feature_method = feature_method
         self.root = os.path.join(root, self.dataset, self.feature_method)
         self.train = train
         self.data = self.load_data()
+        self.num_classes = self.get_num_classes()
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         file_path, label = self.data.iloc[index]
-        feature = np.load(file_path)['flowpic'].astype(float)  # uint16 -> float64
+        feature = np.load(file_path)['flowpic'].astype(
+            float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
         label = torch.LongTensor([label])  # dtype: torch.int64
         return feature, label
@@ -281,13 +296,11 @@ class SimpleDataset:
         return pd.read_csv(os.path.join(self.root, file))
 
 
-class JointISCX:
-    def __init__(self, roots: List[str], train: bool, flag: bool = False, part: List[int] = None):
-        assert len(roots) == 2
-        self.roots = roots
+class MultiFeatureISCX:
+    def __init__(self, dataset: str, train: bool, feature=['FlowPic', 'MyFlowPic']):
+        self.dataset = dataset
         self.train = train
-        self.flag = flag
-        self.part = part
+        self.feature = feature
 
         self.load_dataset()
         assert self.dataset_a.get_num_classes() == self.dataset_b.get_num_classes()
@@ -296,8 +309,10 @@ class JointISCX:
 
     def load_dataset(self):
         # 横跨FlowPic和MyFlowPic
-        self.dataset_a = ISCX(root=self.roots[0], train=self.train, flag=self.flag, part=self.part)
-        self.dataset_b = ISCX(root=self.roots[1], train=self.train, flag=self.flag, part=self.part)
+        self.dataset_a = SimpleDataset(
+            root='../dataset/processed/', dataset=self.dataset, train=self.train, feature_method=self.feature[0])
+        self.dataset_b = SimpleDataset(
+            root='../dataset/processed/', dataset=self.dataset, train=self.train, feature_method=self.feature[1])
 
     def __len__(self):
         return len(self.dataset_a)
@@ -314,7 +329,7 @@ class JointISCX:
         return torch.concat([flowpic_a, flowpic_b], dim=0), label
 
     def name(self):
-        return self.dataset_a.name() + '_Joint'
+        return 'MultiFeature'+'_'+self.dataset_a.name()
 
     def get_num_classes(self):
         return self.num_classes

@@ -15,9 +15,9 @@ from torchvision import transforms as trans
 from torchvision.datasets import MNIST
 from tqdm import tqdm
 import classifier
-from mydataset import ISCX2016Tor, ISCXTor2016EIMTC, ISCX
-from classifier import FlowPicNet, FlowPicNet_256, FlowPicNet_256_Reduce, LeNet
-from utils import load_config_from_yaml, save_config_to_yaml, get_time
+from mydataset import ISCX2016Tor, ISCXTor2016EIMTC, MultiFeatureISCX
+from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet
+from utils import load_config_from_yaml, save_config_to_yaml, get_time, get_dataloader_datasetname_numclasses
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -117,22 +117,19 @@ class Trainer:
 
     def init_by_config(self):
         # 基础参数
+        self.dataset = self.config['dataset']
+        self.feature_method = self.config['feature_method']
         self.batch_size = self.config['batch_size']
-        self.dataset_root = self.config['dataset_root']
         self.lr = self.config['lr']
+        self.shuffle = self.config['shuffle']
         if 'part' in self.config.keys():
             self.part = self.config['part']
         else:
             self.part = None
         # 基础组件
-        train_dataset: Dataset = eval(self.config['dataset'])(root=self.dataset_root, train=True,
-                                                              flag=self.config['flag'], part=self.part)
-        val_dataset: Dataset = eval(self.config['dataset'])(root=self.dataset_root, train=False,
-                                                            flag=self.config['flag'], part=self.part)
-        self.dataset_name = train_dataset.name()
-        self.num_classes = train_dataset.num_classes
-        self.train_dl: DataLoader = DataLoader(dataset=train_dataset, batch_size=self.batch_size)
-        self.val_dl: DataLoader = DataLoader(dataset=val_dataset, batch_size=self.batch_size)
+
+        self.train_dl,self.val_dl,self.dataset_name,self.num_classes = \
+        get_dataloader_datasetname_numclasses(dataset=self.dataset,feature_method=self.feature_method,batch_size=self.batch_size,shuffle=self.shuffle)
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
         self.model = eval(self.config['model']).to(device)  # 模型实例
         self.opt = eval(self.config['optim'])  # 优——化器实例
@@ -186,11 +183,3 @@ class Trainer:
         else:
             # 文件已创建，不包含表头
             self.output.to_csv(csv_path, mode='a+', index=False)
-
-
-if __name__ == '__main__':
-    # test config
-    t = Trainer(r'./config.yaml', logdir=f'./log/{get_time()}')
-    # print(len(t.train_dl))
-    t.train()
-    # Trainer(r'./config.yaml', logdir=f'./log/{get_time()}').train()
