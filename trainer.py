@@ -23,10 +23,14 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def metrics_init(num_classes):
-    test_acc = torchmetrics.Accuracy(task="multiclass", num_classes=num_classes)
-    test_recall = torchmetrics.Recall(task="multiclass", average='none', num_classes=num_classes)
-    test_precision = torchmetrics.Precision(task="multiclass", average='none', num_classes=num_classes)
-    test_auc = torchmetrics.AUROC(task="multiclass", average="macro", num_classes=num_classes)
+    test_acc = torchmetrics.Accuracy(
+        task="multiclass", num_classes=num_classes)
+    test_recall = torchmetrics.Recall(
+        task="multiclass", average='none', num_classes=num_classes)
+    test_precision = torchmetrics.Precision(
+        task="multiclass", average='none', num_classes=num_classes)
+    test_auc = torchmetrics.AUROC(
+        task="multiclass", average="macro", num_classes=num_classes)
     return test_acc.to(device), test_recall.to(device), test_precision.to(device), test_auc.to(device)
 
 
@@ -98,7 +102,8 @@ class Trainer:
                 feature = feature.unsqueeze(1)  # MNIST不需要
                 out = self.model(feature)  # 没经过 softmax
                 pre = nn.Softmax()(out).argmax(dim=1)
-                onehot_label = one_hot(label, num_classes=self.num_classes).float()
+                onehot_label = one_hot(
+                    label, num_classes=self.num_classes).float()
 
                 onehot_label = onehot_label.squeeze(1).float()
                 loss = self.loss_func(out, onehot_label)
@@ -113,7 +118,7 @@ class Trainer:
             acc = self.test_acc.compute()
             self.test_acc.reset()
             # print(corrects / len(self.val_dl.dataset))
-            return losses / len(self.val_dl), acc
+            return losses / len(self.val_dl), acc.cpu().item()
 
     def init_by_config(self):
         # 基础参数
@@ -128,8 +133,9 @@ class Trainer:
             self.part = None
         # 基础组件
 
-        self.train_dl,self.val_dl,self.dataset_name,self.num_classes = \
-        get_dataloader_datasetname_numclasses(dataset=self.dataset,feature_method=self.feature_method,batch_size=self.batch_size,shuffle=self.shuffle)
+        self.train_dl, self.val_dl, self.dataset_name, self.num_classes = \
+            get_dataloader_datasetname_numclasses(
+                dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size, shuffle=self.shuffle)
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
         self.model = eval(self.config['model']).to(device)  # 模型实例
         self.opt = eval(self.config['optim'])  # 优——化器实例
@@ -143,22 +149,23 @@ class Trainer:
     def archive(self):
         # 配置保存
         checkpoint_folder_name_ = self.model.name() \
-                                  + '-' + self.dataset_name \
-                                  + '-' + self.config['optim'].split('(')[0].split('.')[1] \
-                                  + '-' + self.config['lr_scheduler'].split('(')[0] \
-                                  + '-' + get_time()
+            + '-' + self.dataset_name \
+            + '-' + self.config['optim'].split('(')[0].split('.')[1] \
+            + '-' + self.config['lr_scheduler'].split('(')[0] \
+            + '-' + get_time()
 
         self.config['checkpoint_folder_name'] = checkpoint_folder_name_
-        folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
-        os.makedirs(folder, exist_ok=True)
-        shutil.copy('./config.yaml',f'{folder}/config.yaml')
+        self.folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
+        os.makedirs(self.folder, exist_ok=True)
+        shutil.copy('./config.yaml', f'{self.folder}/config.yaml')
         # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
     def train(self):
         self.archive()
-
+        self.acc = []
         for epoch in range(self.epochs):
-            self.output = {'epoch': [], 'cur_lr': [], 'train_loss': [], 'val_loss': [], 'acc': []}
+            self.output = {'epoch': [], 'cur_lr': [],
+                           'train_loss': [], 'val_loss': [], 'acc': []}
             cur_lr = self.opt.param_groups[0]['lr']
             tqdm.write(f'epoch: {epoch},\ncur_lr: {cur_lr}')
             self.output['epoch'].append(epoch)
@@ -166,17 +173,23 @@ class Trainer:
             # _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
             train_loss = self._train_epoch(epoch)
             _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
+            self.acc.append(_valid_epoch_acc)
+            if _valid_epoch_acc > 0.85 and _valid_epoch_acc - max(self.acc) > 0.01 and epoch%3 == 0:
+                torch.save(self.model.state_dict(), os.path.join(
+                    self.folder, f'{_valid_epoch_acc:.4f}'+'.pth'))
+                pass
             tqdm.write(
                 f"train_loss: {train_loss}\nval_loss: {_valid_epoch_loss}\nval_acc: {_valid_epoch_acc * 100:.4f}%\n")
             self.output['train_loss'].append(train_loss)
             self.output['val_loss'].append(_valid_epoch_loss)
-            self.output['acc'].append(_valid_epoch_acc.cpu().item())
+            self.output['acc'].append(_valid_epoch_acc)
             # print(type(epoch), type(cur_lr), type(train_loss), type(_valid_epoch_loss), type(_valid_epoch_acc.cpu().item()))
             self.write_output()
 
     def write_output(self):
         self.output = pd.DataFrame.from_dict(self.output)
-        csv_path = os.path.join('checkpoints', self.config['checkpoint_folder_name'], 'output.csv')
+        csv_path = os.path.join(
+            'checkpoints', self.config['checkpoint_folder_name'], 'output.csv')
         if os.path.exists(csv_path):
             # 初次打开文件，包含表头
             self.output.to_csv(csv_path, mode='a+', index=False, header=False)
