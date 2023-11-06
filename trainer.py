@@ -10,6 +10,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import torchmetrics
 from torch.nn.functional import one_hot
+from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as trans
 from torchvision.datasets import MNIST
@@ -42,11 +43,10 @@ class Trainer:
         self.part : 数据集初始化参数、保存配置时也用到了
     """
 
-    def __init__(self, config, logdir):
+    def __init__(self, config):
         torch.cuda.empty_cache()
         # 1. 参数实例化
         self.config = load_config_from_yaml(config)
-        self.logdir = logdir
         self.init_by_config()
         self.test_acc, self.test_recall, self.test_precision, self.test_auc = metrics_init(
             num_classes=self.num_classes)
@@ -135,7 +135,8 @@ class Trainer:
 
         self.train_dl, self.val_dl, self.dataset_name, self.num_classes = \
             get_dataloader_datasetname_numclasses(
-                dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size, shuffle=self.shuffle)
+                dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size,
+                shuffle=self.shuffle)
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
         self.model = eval(self.config['model']).to(device)  # 模型实例
         self.opt = eval(self.config['optim'])  # 优——化器实例
@@ -149,21 +150,22 @@ class Trainer:
     def archive(self):
         # 配置保存
         checkpoint_folder_name_ = self.model.name() \
-            + '-' + self.dataset_name \
-            + '-' + self.config['optim'].split('(')[0].split('.')[1] \
-            + '-' + self.config['lr_scheduler'].split('(')[0] \
-            + '-' + get_time()
+                                  + '-' + self.dataset_name \
+                                  + '-' + self.config['optim'].split('(')[0].split('.')[1] \
+                                  + '-' + self.config['lr_scheduler'].split('(')[0] \
+                                  + '-' + get_time()
 
         self.config['checkpoint_folder_name'] = checkpoint_folder_name_
         self.folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
+
         os.makedirs(self.folder, exist_ok=True)
+        self.logger = SummaryWriter(log_dir=os.path.join(self.folder, 'SummaryWriterLog'))
         shutil.copy('./config.yaml', f'{self.folder}/config.yaml')
         # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
     def train(self):
-        self.archive()
-        self.acc = []
-        for epoch in range(self.epochs):
+        self.archive() # not save config and output while debugging
+        for epoch in range(1, self.epochs + 1):
             self.output = {'epoch': [], 'cur_lr': [],
                            'train_loss': [], 'val_loss': [], 'acc': []}
             cur_lr = self.opt.param_groups[0]['lr']
@@ -173,16 +175,23 @@ class Trainer:
             # _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
             train_loss = self._train_epoch(epoch)
             _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
-            self.acc.append(_valid_epoch_acc)
-            if _valid_epoch_acc > 0.85 and _valid_epoch_acc - max(self.acc) > 0.01 and epoch%3 == 0:
+            # 保存精度高的和最后几个epoch的模型参数
+            if (_valid_epoch_acc > 0.1 and _valid_epoch_acc - max(self.output['acc']) > 0.01 and epoch % 1 == 0) or (
+                    epoch > self.epochs * 0.9 and epoch % 3 == 0):
                 torch.save(self.model.state_dict(), os.path.join(
-                    self.folder, f'{_valid_epoch_acc:.4f}'+'.pth'))
+                    self.folder, f'{_valid_epoch_acc:.4f}' + '.pth'))
+                tqdm.write('save model')
                 pass
+
             tqdm.write(
                 f"train_loss: {train_loss}\nval_loss: {_valid_epoch_loss}\nval_acc: {_valid_epoch_acc * 100:.4f}%\n")
             self.output['train_loss'].append(train_loss)
             self.output['val_loss'].append(_valid_epoch_loss)
             self.output['acc'].append(_valid_epoch_acc)
+
+            self.logger.add_scalar('train_loss', train_loss, epoch)
+            self.logger.add_scalar('val_loss', _valid_epoch_loss, epoch)
+            self.logger.add_scalar('val_acc', _valid_epoch_acc, epoch)
             # print(type(epoch), type(cur_lr), type(train_loss), type(_valid_epoch_loss), type(_valid_epoch_acc.cpu().item()))
             self.write_output()
 
