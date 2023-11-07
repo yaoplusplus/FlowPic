@@ -159,49 +159,69 @@ class Trainer:
         self.folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
 
         os.makedirs(self.folder, exist_ok=True)
-        self.logger = SummaryWriter(log_dir=os.path.join(self.folder, 'SummaryWriterLog'))
         shutil.copy('./config.yaml', f'{self.folder}/config.yaml')
         # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
+    def init_logger(self):
+        self.acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'acc'))
+        self.train_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_loss'))
+        self.valid_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_loss'))
+
     def train(self):
-        self.archive() # not save config and output while debugging
+
+        self.archive()  # not save config and output while debugging
+        self.init_logger()
+        self.output = {'epoch': [], 'cur_lr': [],
+                       'train_loss': [], 'val_loss': [], 'acc': []}
         for epoch in range(1, self.epochs + 1):
-            self.output = {'epoch': [], 'cur_lr': [],
-                           'train_loss': [], 'val_loss': [], 'acc': []}
             cur_lr = self.opt.param_groups[0]['lr']
             tqdm.write(f'epoch: {epoch},\ncur_lr: {cur_lr}')
-            self.output['epoch'].append(epoch)
-            self.output['cur_lr'].append(cur_lr)
-            # _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
+
+            # 训练
             train_loss = self._train_epoch(epoch)
+            # 验证
             _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
-            # 保存精度高的和最后几个epoch的模型参数
-            if (_valid_epoch_acc > 0.1 and _valid_epoch_acc - max(self.output['acc']) > 0.01 and epoch % 1 == 0) or (
-                    epoch > self.epochs * 0.9 and epoch % 3 == 0):
-                torch.save(self.model.state_dict(), os.path.join(
-                    self.folder, f'{_valid_epoch_acc:.4f}' + '.pth'))
-                tqdm.write('save model')
-                pass
 
             tqdm.write(
                 f"train_loss: {train_loss}\nval_loss: {_valid_epoch_loss}\nval_acc: {_valid_epoch_acc * 100:.4f}%\n")
+            # 保存输出到csv
+            self.output['epoch'].append(epoch)
+            self.output['cur_lr'].append(cur_lr)
             self.output['train_loss'].append(train_loss)
             self.output['val_loss'].append(_valid_epoch_loss)
             self.output['acc'].append(_valid_epoch_acc)
+            #  由于保存输出会转换self.output的格式，所以先保存模型
+            self.save(epoch)
+            self.write_output(epoch, cur_lr)
 
-            self.logger.add_scalar('train_loss', train_loss, epoch)
-            self.logger.add_scalar('val_loss', _valid_epoch_loss, epoch)
-            self.logger.add_scalar('val_acc', _valid_epoch_acc, epoch)
-            # print(type(epoch), type(cur_lr), type(train_loss), type(_valid_epoch_loss), type(_valid_epoch_acc.cpu().item()))
-            self.write_output()
+            # 记录输出到tensorboard
+            self.acc_logger.add_scalar('data', _valid_epoch_acc, epoch)
+            self.valid_loss_logger.add_scalar('data', _valid_epoch_loss, epoch)
+            self.train_loss_logger.add_scalar('data', train_loss, epoch)
 
-    def write_output(self):
-        self.output = pd.DataFrame.from_dict(self.output)
+            # 保存模型参数
+
+    def save(self, epoch):
+        # 保存精度高的和最后几个epoch的模型参数
+        if epoch > 1:
+            if ((self.output['acc'][-1] > 0.8 and
+                 self.output['acc'][-1] - max(self.output['acc']) > 0.02 and
+                 epoch % 3 == 0) or
+                    (epoch > self.epochs * 0.9 and epoch % 3 == 0)):
+                torch.save(self.model.state_dict(), os.path.join(
+                    self.folder, f"{self.output['acc']:.4f}" + '.pth'))
+                tqdm.write('save model')
+
+    def write_output(self, epoch, cur_lr):
+        output2write = {'epoch': epoch, 'cur_lr': cur_lr,
+                        'train_loss': [self.output['train_loss'][-1]], 'val_loss': [self.output['val_loss'][-1]],
+                        'acc': [self.output['acc'][-1]]}
+        output2write = pd.DataFrame.from_dict(output2write)
         csv_path = os.path.join(
             'checkpoints', self.config['checkpoint_folder_name'], 'output.csv')
         if os.path.exists(csv_path):
             # 初次打开文件，包含表头
-            self.output.to_csv(csv_path, mode='a+', index=False, header=False)
+            output2write.to_csv(csv_path, mode='a+', index=False, header=False)
         else:
             # 文件已创建，不包含表头
-            self.output.to_csv(csv_path, mode='a+', index=False)
+            output2write.to_csv(csv_path, mode='a+', index=False)
