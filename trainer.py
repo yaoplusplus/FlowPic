@@ -44,6 +44,7 @@ class Trainer:
     """
 
     def __init__(self, config):
+        self.saved_acc = [0]
         torch.cuda.empty_cache()
         # 1. 参数实例化
         self.config = load_config_from_yaml(config)
@@ -191,8 +192,8 @@ class Trainer:
             self.output['val_loss'].append(_valid_epoch_loss)
             self.output['acc'].append(_valid_epoch_acc)
             #  由于保存输出会转换self.output的格式，所以先保存模型
-            self.save(epoch)
-            self.write_output(epoch, cur_lr)
+            self.save()
+            self.write_output()
 
             # 记录输出到tensorboard
             self.acc_logger.add_scalar('data', _valid_epoch_acc, epoch)
@@ -201,19 +202,23 @@ class Trainer:
 
             # 保存模型参数
 
-    def save(self, epoch):
+    def save(self):
+        flag = False
         # 保存精度高的和最后几个epoch的模型参数
-        if epoch > 1:
-            if ((self.output['acc'][-1] > 0.8 and
-                 self.output['acc'][-1] - max(self.output['acc']) > 0.02 and
-                 epoch % 3 == 0) or
-                    (epoch > self.epochs * 0.9 and epoch % 3 == 0)):
-                torch.save(self.model.state_dict(), os.path.join(
-                    self.folder, f"{self.output['acc']:.4f}" + '.pth'))
-                tqdm.write('save model')
+        if self.output['epoch'][-1] % 3 == 0:
+            if self.output['acc'][-1] > 0.8:
+                if self.output['acc'][-1] - max(self.saved_acc) > 0.02:
+                    flag = True
+            if self.output['epoch'][-1] > self.epochs * 0.9:
+                flag = True
+        if flag:
+            self.saved_acc.append(self.output['acc'][-1])
+            torch.save(self.model.state_dict(), os.path.join(
+                self.folder, f"{self.output['acc'][-1]:.4f}" + '.pth'))
+            tqdm.write('save model')
 
-    def write_output(self, epoch, cur_lr):
-        output2write = {'epoch': epoch, 'cur_lr': cur_lr,
+    def write_output(self):
+        output2write = {'epoch': self.output['epoch'][-1], 'cur_lr': self.output['cur_lr'][-1],
                         'train_loss': [self.output['train_loss'][-1]], 'val_loss': [self.output['val_loss'][-1]],
                         'acc': [self.output['acc'][-1]]}
         output2write = pd.DataFrame.from_dict(output2write)

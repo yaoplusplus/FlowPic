@@ -29,9 +29,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def test_dataset():
-    roots = {'ISCXVPN2016':[r'/home/cape/data/trace/ISCXVPN2016/FlowPic',
-             r'/home/cape/data/trace/ISCXVPN2016/MyFlowPic'],
-             'ISCXTor2016':[r'/home/cape/data/trace/ISCXTor2016/FlowPic',r'/home/cape/data/trace/ISCXTor2016/MyFlowPic'],
+    roots = {'ISCXVPN2016': [r'/home/cape/data/trace/ISCXVPN2016/FlowPic',
+                             r'/home/cape/data/trace/ISCXVPN2016/MyFlowPic'],
+             'ISCXTor2016': [r'/home/cape/data/trace/ISCXTor2016/FlowPic',
+                             r'/home/cape/data/trace/ISCXTor2016/MyFlowPic'],
              }
     d = JointISCX(roots=roots['ISCXVPN2016'], train=True, flag=True)
 
@@ -46,6 +47,13 @@ def test_dataset():
     print(label)
 
 
+def test_JointDataset():
+    d = JointISCX(dataset='ISCXVPN2016_VPN', feature_method='FlowPic', train=True, root='./dataset/processed')
+    loader = DataLoader(d, batch_size=1, shuffle=False)
+    for f, l in loader:
+        print(f.shape, l)
+        exit(0)
+
 
 if __name__ == '__main__':
     # 
@@ -56,14 +64,11 @@ if __name__ == '__main__':
 
     # test_dataset()
     # d = SimpleDataset(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
-    d = JointISCX(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
-    loader = DataLoader(d,batch_size=1,shuffle=False)
-    for f,l in loader:
-        print(f.shape,l)
-        exit(0)
-    
+    test_JointDataset()
+
     # print(len(d))
     # print(d.name())
-    
-
+    t = Trainer(r'./config.yaml')
+    # print(len(t.train_dl))
+    t.train()
     pass

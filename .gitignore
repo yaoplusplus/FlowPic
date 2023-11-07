@@ -7,3 +7,7 @@
 *.zip
 /dataset
 /test
+acc
+train_loss
+valid_loss
+*.pth
