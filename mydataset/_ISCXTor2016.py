@@ -252,7 +252,7 @@ class ISCX(BaseEIMTCFlowPicDataset):
         return base + subclass + part
 
 
-class SimpleDataset:
+class SimpleDataset(Dataset):
     def __init__(self, dataset: str, feature_method: str, train: bool, root):
         """
         dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN

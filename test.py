@@ -46,16 +46,18 @@ def test_dataset():
     print(flowpic.shape)
     print(label)
 
+
 if __name__ == '__main__':
     # root = '/home/cape/data/trace/new_processed',
     # dataset = 'ISCXTor2016_tor',
     # feature_method = 'JointFeature', batch_size = 32, shuffle = True
-    dl, _, __,___ = get_dataloader_datasetname_numclasses(root='/home/cape/data/trace/new_processed',
-                                                      dataset='ISCXTor2016_tor',
-                                                      feature_method='FlowPic', batch_size=32, shuffle=True)
-    for f, l in dl:
-        print(f.shape)
-        exit(0)
+    dl, _, __, ___ = get_dataloader_datasetname_numclasses(root='/home/cape/data/trace/new_processed',
+                                                           dataset='ISCXTor2016_tor',
+                                                           feature_method='FlowPic', batch_size=32, shuffle=True)
+    print(len(dl))
+    # for f, l in dl:
+    #     print(f.shape)
+    #     exit(0)
     # print(len(d))
     # print(d.name())
     # t = Trainer(r'./config.yaml')

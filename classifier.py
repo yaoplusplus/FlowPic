@@ -64,11 +64,11 @@ class FlowPicNet(nn.Module):
 
 
 class PureClassifier(nn.Module):
-    def __init__(self, in_features, num_classes):
+    def __init__(self, in_features, out_features, num_classes):
         super().__init__()
         self.num_classes = num_classes
-        self.linear1 = Sequential(Linear(in_features=in_features, out_features=64), ReLU(), Dropout(0.5))
-        self.linear2 = Sequential(Linear(in_features=64, out_features=self.num_classes))
+        self.linear1 = Sequential(Linear(in_features=in_features, out_features=out_features), ReLU(), Dropout(0.5))
+        self.linear2 = Sequential(Linear(in_features=out_features, out_features=self.num_classes))
 
     def forward(self, x):
         x = self.linear1(x)
