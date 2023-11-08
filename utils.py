@@ -137,7 +137,7 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
     feature_extractor: torch.nn.Module = eval(feature_extractor)(num_classes=get_num_classes(path),
                                                                  mode='feature_extractor').to(device)
     if para_dict:
-        feature_extractor.load_state_dict(torch.load(para_dict))
+        feature_extractor = (torch.load(para_dict))
     feature_extractor.eval()
 
     for file in tqdm(flowpic_files):
@@ -146,7 +146,8 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
         # label = datasets[dataset]['classes'](split_file_path[-2])
         # [1500,1500] -> [1,1,1500,1500]
         flowpic = torch.Tensor(np.load(file)['flowpic'].astype(float)).to(device).unsqueeze(dim=0).unsqueeze(dim=0)
-        myflowpic = torch.Tensor(np.load(file.replace(feature_methods[0], feature_methods[1]))['flowpic'].astype(float)).to(
+        myflowpic = torch.Tensor(
+            np.load(file.replace(feature_methods[0], feature_methods[1]))['flowpic'].astype(float)).to(
             device).unsqueeze(dim=0).unsqueeze(dim=0)
 
         # 获取并串联特征
@@ -161,9 +162,9 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
 
 
 if __name__ == '__main__':
-    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='ISCXVPN2016_VPN',
+    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='ISCXTor2016_tor',
                         feature_methods=['FlowPic', 'MyFlowPic'],
-                        # para_dict='/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_tor_FlowPic-Adam-ReduceLROnPlateau-2023-11-07_17-55-25/0.8546.pth',
+                        para_dict='/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_FlowPic-Adam-ReduceLROnPlateau-2023-11-08_12-42-16/0.9152.pth',
                         feature_extractor='FlowPicNet')
     # feature = np.load(
     #     '/home/cape/code/FlowPic/dataset/processed/ISCXTor2016_tor/JointFeature/audio/flowpic-1437494738355-10.0.2.15-57188-82.161.239.177-110-6-src2dst.npz')['feature']
