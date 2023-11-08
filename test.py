@@ -13,15 +13,15 @@ from torch.nn.functional import one_hot
 import torch.optim as optim
 from torch.utils.data import DataLoader, Dataset
 from TrafficParser.datasets import FlowPicData
-from classifier import FlowPicNet, FlowPicNet_256, FlowPicNet_256_Reduce
+from classifier import FlowPicNet
 import yaml
 # from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 
 import mydataset
-from mydataset import ISCX2016Tor, ISCX, JointISCX, SimpleDataset
+from mydataset import ISCX2016Tor, ISCX, SimpleDataset
 from trainer import Trainer
-from utils import get_time
+from utils import get_time, get_dataloader_datasetname_numclasses
 
 # global settings
 torch.manual_seed(0)
@@ -46,29 +46,19 @@ def test_dataset():
     print(flowpic.shape)
     print(label)
 
-
-def test_JointDataset():
-    d = JointISCX(dataset='ISCXVPN2016_VPN', feature_method='FlowPic', train=True, root='./dataset/processed')
-    loader = DataLoader(d, batch_size=1, shuffle=False)
-    for f, l in loader:
-        print(f.shape, l)
-        exit(0)
-
-
 if __name__ == '__main__':
-    # 
-    #     Trainer(r'checkpoints/FlowPicNet(num_classes=9)-ISCXTor2016_EIMTC-Adam-lrscheduler_0.05_20_0.5.yaml',
-    #             logdir=f'./log/{get_time()}').train()
-    # test_loss_batch('flowpic_data_config.yaml', logdir='')
-    # compare_model_params(FlowPicNet().state_dict(), FlowPicNet().state_dict())
-
-    # test_dataset()
-    # d = SimpleDataset(dataset='ISCXVPN2016_VPN',feature_method='FlowPic', train=True,root='./dataset/processed')
-    test_JointDataset()
-
+    # root = '/home/cape/data/trace/new_processed',
+    # dataset = 'ISCXTor2016_tor',
+    # feature_method = 'JointFeature', batch_size = 32, shuffle = True
+    dl, _, __,___ = get_dataloader_datasetname_numclasses(root='/home/cape/data/trace/new_processed',
+                                                      dataset='ISCXTor2016_tor',
+                                                      feature_method='FlowPic', batch_size=32, shuffle=True)
+    for f, l in dl:
+        print(f.shape)
+        exit(0)
     # print(len(d))
     # print(d.name())
-    t = Trainer(r'./config.yaml')
-    # print(len(t.train_dl))
-    t.train()
+    # t = Trainer(r'./config.yaml')
+    # # print(len(t.train_dl))
+    # t.train()
     pass
