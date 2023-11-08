@@ -17,10 +17,10 @@ from torchvision.datasets import MNIST
 from tqdm import tqdm
 import classifier
 from mydataset import ISCX2016Tor, ISCXTor2016EIMTC, MultiFeatureISCX
-from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet
+from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet, PureClassifier
 from utils import load_config_from_yaml, save_config_to_yaml, get_time, get_dataloader_datasetname_numclasses
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+from utils import device
 
 
 def metrics_init(num_classes):
@@ -62,11 +62,13 @@ class Trainer:
         self.model.train()
 
         losses = 0
-        # for feature, label in tqdm(self.train_dl, leave=False):
         for feature, label in tqdm(self.train_dl, leave=False):
             feature = feature.to(device)
             label = label.to(device)
-            feature = feature.unsqueeze(1)  # MNIST不需要
+            if self.model.name() == 'PureClassifier':
+                feature = feature.squeeze(1)  # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
+            else:
+                feature = feature.unsqueeze(1)  # CNN对输入的形状要求:[batch_size,n_channels,height,width]
             out = self.model(feature)
             onehot_label = one_hot(label, num_classes=self.num_classes).float()
 
@@ -100,7 +102,10 @@ class Trainer:
             for feature, label in tqdm(self.val_dl, leave=False):
                 feature = feature.to(device)
                 label = label.to(device)
-                feature = feature.unsqueeze(1)  # MNIST不需要
+                if self.model.name() == 'PureClassifier':
+                    feature = feature.squeeze(1)  # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
+                else:
+                    feature = feature.unsqueeze(1)  # CNN对输入的形状要求:[batch_size,n_channels,height,width]
                 out = self.model(feature)  # 没经过 softmax
                 pre = nn.Softmax()(out).argmax(dim=1)
                 onehot_label = one_hot(
@@ -123,6 +128,7 @@ class Trainer:
 
     def init_by_config(self):
         # 基础参数
+        self.dataset_root = self.config['dataset_root']
         self.dataset = self.config['dataset']
         self.feature_method = self.config['feature_method']
         self.batch_size = self.config['batch_size']
@@ -136,6 +142,7 @@ class Trainer:
 
         self.train_dl, self.val_dl, self.dataset_name, self.num_classes = \
             get_dataloader_datasetname_numclasses(
+                root=self.dataset_root,
                 dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size,
                 shuffle=self.shuffle)
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
