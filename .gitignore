@@ -11,3 +11,4 @@ acc
 train_loss
 valid_loss
 *.pth
+*.png
