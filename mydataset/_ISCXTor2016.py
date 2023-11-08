@@ -256,7 +256,7 @@ class SimpleDataset:
     def __init__(self, dataset: str, feature_method: str, train: bool, root):
         """
         dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
-        feature_method : FlowPic, MyFlowPic, Joint
+        feature_method : FlowPic, MyFlowPic, Joint, JointFeature
         """
         self.dataset = dataset
         self.feature_method = feature_method
@@ -270,8 +270,8 @@ class SimpleDataset:
 
     def __getitem__(self, index):
         file_path, label = self.data.iloc[index]
-        feature = np.load(file_path)['flowpic'].astype(
-            float)  # uint16 -> float64
+        key = 'feature' if self.feature_method == 'JointFeature' else 'flowpic'
+        feature = np.load(file_path)[key].astype(float)  # uint16 -> float64
         feature = torch.FloatTensor(feature)  # dtype: torch.float32
         label = torch.LongTensor([label])  # dtype: torch.int64
         return feature, label
@@ -329,7 +329,7 @@ class MultiFeatureISCX:
         return torch.concat([flowpic_a, flowpic_b], dim=0), label
 
     def name(self):
-        return 'MultiFeature'+'_'+self.dataset_a.name()
+        return 'MultiFeature' + '_' + self.dataset_a.name()
 
     def get_num_classes(self):
         return self.num_classes
