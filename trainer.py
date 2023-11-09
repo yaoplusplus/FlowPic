@@ -16,7 +16,7 @@ from torchvision import transforms as trans
 from torchvision.datasets import MNIST
 from tqdm import tqdm
 import classifier
-from mydataset import ISCX2016Tor, ISCXTor2016EIMTC, MultiFeatureISCX
+
 from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet, PureClassifier
 from utils import load_config_from_yaml, save_config_to_yaml, get_time, get_dataloader_datasetname_numclasses
 
@@ -221,7 +221,7 @@ class Trainer:
         if flag:
             self.saved_acc.append(self.output['acc'][-1])
             torch.save(self.model, os.path.join(  # 由于模型改动很频繁且模型不是很大，直接保存模型
-                self.folder, f"{self.output['acc'][-1]:.4f}" + '.pth'))
+                self.folder, f"{self.output['acc'][-1]:.4f}" + '.pt'))
             tqdm.write('save model')
 
     def write_output(self):

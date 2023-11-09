@@ -11,3 +11,5 @@ acc
 train_loss
 valid_loss
 *.pth
+*.pt
+test.py
