@@ -119,7 +119,7 @@ datasets = {
 
 
 def make_joint_features(root: str, dataset: str, feature_methods: List, feature_extractor: str = 'FlowPicNet',
-                        para_dict: str = None,
+                        para_dict: str = None, folder_name: str = 'JointFeature'
                         ):
     """
     提取特征向量并保存
@@ -137,7 +137,7 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
     feature_extractor: torch.nn.Module = eval(feature_extractor)(num_classes=get_num_classes(path),
                                                                  mode='feature_extractor').to(device)
     if para_dict:
-        feature_extractor = (torch.load(para_dict))
+        feature_extractor = torch.load(para_dict)
     feature_extractor.eval()
 
     for file in tqdm(flowpic_files):
@@ -156,17 +156,22 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
             myflowpic_feature = feature_extractor(myflowpic)
             joint_fature = torch.concat([flowpic_feature, myflowpic_feature], dim=1)
             # save file
-            save_path = os.path.join(root, dataset, 'JointFeature', split_file_path[-2])
+            save_path = os.path.join(root, dataset, folder_name, split_file_path[-2])
             os.makedirs(save_path, exist_ok=True)
             np.savez_compressed(os.path.join(save_path, split_file_path[-1]), feature=joint_fature.cpu().numpy())
 
 
 if __name__ == '__main__':
+    tor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_tor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-28/0.8443.pt'
+    nonTor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_nonTor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-16/0.8582.pt'
+    vpn_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-08_16-53-26/0.9182.pt'
+
     make_joint_features(root='/home/cape/data/trace/new_processed', dataset='ISCXTor2016_tor',
                         feature_methods=['FlowPic', 'MyFlowPic'],
-                        para_dict='/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_FlowPic-Adam-ReduceLROnPlateau-2023-11-08_12-42-16/0.9152.pth',
-                        feature_extractor='FlowPicNet')
-    # feature = np.load(
-    #     '/home/cape/code/FlowPic/dataset/processed/ISCXTor2016_tor/JointFeature/audio/flowpic-1437494738355-10.0.2.15-57188-82.161.239.177-110-6-src2dst.npz')['feature']
-    # print(feature.shape)
+                        para_dict=tor_model,
+                        feature_extractor='FlowPicNet', folder_name='JointFeature_trained_tor_model')
+    # model_pt = '/home/cape/code/FlowPic/checkpoints/PureClassifier-ISCXVPN2016_VPN_JointFeature-Adam-ReduceLROnPlateau-2023-11-08_19-46-55/0.9000.pt'
+    # model = torch.load(model_pt)
+    # print(model)
+    # model.eval()
     pass
