@@ -18,9 +18,23 @@ from tqdm import tqdm
 import classifier
 
 from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet, PureClassifier
-from utils import load_config_from_yaml, save_config_to_yaml, get_time, get_dataloader_datasetname_numclasses
+from utils import load_config_from_yaml, save_config_to_yaml, get_time, device
+from mydataset import SimpleDataset
 
-from utils import device
+
+def get_dataloader_datasetname_numclasses(root, dataset: str, feature_method: str, batch_size: int = 128,
+                                          shuffle: bool = True):
+    # 从utils.py文件所在位置锚定数据集位置
+    # root = os.path.join(os.path.dirname(__file__), 'dataset', 'processed') ISCX*** 's dir
+    train_dataset = SimpleDataset(
+        dataset=dataset, feature_method=feature_method, root=root, train=True)
+    test_dataset = SimpleDataset(
+        dataset=dataset, feature_method=feature_method, root=root, train=False)
+    train_loader = DataLoader(dataset=train_dataset,
+                              batch_size=batch_size, shuffle=shuffle)
+    test_loader = DataLoader(dataset=test_dataset,
+                             batch_size=batch_size, shuffle=False)
+    return train_loader, test_loader, train_dataset.name(), train_dataset.num_classes
 
 
 def metrics_init(num_classes):
@@ -79,6 +93,17 @@ class Trainer:
             loss.backward()
             self.opt.step()
             losses += loss.item()
+
+            pre = nn.Softmax()(out).argmax(dim=1)
+            if len(pre.shape) > len(label.shape):
+                pre = pre.squeeze()
+            elif len(pre.shape) < len(label.shape):
+                pre = pre.unsqueeze(1)
+            self.test_acc(label, pre)
+            # corrects += (label == pre).sum()
+
+        acc = self.test_acc.compute()
+        self.test_acc.reset()
         batch_loss = losses / len(self.train_dl)
         # 一个epoch才应该更新lr_scheduler，而不是每一个iter
         if hasattr(self, 'lr_scheduler'):
@@ -87,7 +112,7 @@ class Trainer:
             elif self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
                 self.lr_scheduler.step(batch_loss)
         # tqdm.write(f'lr: {self.lr_scheduler.get_last_lr()}')
-        return batch_loss
+        return batch_loss, acc.cpu().item()
 
     def _valid_epoch(self, epoch):
         """
@@ -171,7 +196,8 @@ class Trainer:
         # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
     def init_logger(self):
-        self.acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'acc'))
+        self.valid_acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_acc'))
+        self.train_acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_acc'))
         self.train_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_loss'))
         self.valid_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_loss'))
 
@@ -180,32 +206,34 @@ class Trainer:
         self.archive()  # not save config and output while debugging
         self.init_logger()
         self.output = {'epoch': [], 'cur_lr': [],
-                       'train_loss': [], 'val_loss': [], 'acc': []}
+                       'train_loss': [], 'val_loss': [], 'valid_acc': [], 'train_acc': []}
         for epoch in range(1, self.epochs + 1):
             cur_lr = self.opt.param_groups[0]['lr']
             tqdm.write(f'epoch: {epoch},\ncur_lr: {cur_lr}')
 
             # 训练
-            train_loss = self._train_epoch(epoch)
+            train_epoch_loss, train_epoch_acc = self._train_epoch(epoch)
             # 验证
-            _valid_epoch_loss, _valid_epoch_acc = self._valid_epoch(epoch)
+            valid_epoch_loss, valid_epoch_acc = self._valid_epoch(epoch)
 
             tqdm.write(
-                f"train_loss: {train_loss}\nval_loss: {_valid_epoch_loss}\nval_acc: {_valid_epoch_acc * 100:.4f}%\n")
+                f"\ntrain_loss: {train_epoch_loss}\nval_loss: {valid_epoch_loss}\nval_acc: {valid_epoch_acc * 100:.4f}%\n{train_epoch_acc * 100:.4f}")
             # 保存输出到csv
             self.output['epoch'].append(epoch)
             self.output['cur_lr'].append(cur_lr)
-            self.output['train_loss'].append(train_loss)
-            self.output['val_loss'].append(_valid_epoch_loss)
-            self.output['acc'].append(_valid_epoch_acc)
+            self.output['train_loss'].append(train_epoch_loss)
+            self.output['val_loss'].append(valid_epoch_loss)
+            self.output['valid_acc'].append(valid_epoch_acc)
+            self.output['train_acc'].append(valid_epoch_acc)
             #  由于保存输出会转换self.output的格式，所以先保存模型
             self.save()
             self.write_output()
 
             # 记录输出到tensorboard
-            self.acc_logger.add_scalar('data', _valid_epoch_acc, epoch)
-            self.valid_loss_logger.add_scalar('data', _valid_epoch_loss, epoch)
-            self.train_loss_logger.add_scalar('data', train_loss, epoch)
+            self.valid_acc_logger.add_scalar('data', valid_epoch_acc, epoch)
+            self.train_acc_logger.add_scalar('data', train_epoch_acc, epoch)
+            self.valid_loss_logger.add_scalar('data', valid_epoch_loss, epoch)
+            self.train_loss_logger.add_scalar('data', train_epoch_loss, epoch)
 
             # 保存模型参数
 
@@ -213,21 +241,22 @@ class Trainer:
         flag = False
         # 保存精度高的和最后几个epoch的模型参数
         if self.output['epoch'][-1] % 3 == 0:
-            if self.output['acc'][-1] > 0.8:
-                if self.output['acc'][-1] - max(self.saved_acc) > 0.02:
+            if self.output['valid_acc'][-1] > 0.8:
+                if self.output['valid_acc'][-1] - max(self.saved_acc) > 0.02:
                     flag = True
             if self.output['epoch'][-1] > self.epochs * 0.9:
                 flag = True
         if flag:
-            self.saved_acc.append(self.output['acc'][-1])
+            self.saved_acc.append(self.output['valid_acc'][-1])
             torch.save(self.model, os.path.join(  # 由于模型改动很频繁且模型不是很大，直接保存模型
-                self.folder, f"{self.output['acc'][-1]:.4f}" + '.pt'))
+                self.folder, f"{self.output['valid_acc'][-1]:.4f}" + '.pt'))
             tqdm.write('save model')
 
     def write_output(self):
         output2write = {'epoch': self.output['epoch'][-1], 'cur_lr': self.output['cur_lr'][-1],
                         'train_loss': [self.output['train_loss'][-1]], 'val_loss': [self.output['val_loss'][-1]],
-                        'acc': [self.output['acc'][-1]]}
+                        'valid_acc': [self.output['valid_acc'][-1]],
+                        'train_acc': [self.output['train_acc'][-1]]}
         output2write = pd.DataFrame.from_dict(output2write)
         csv_path = os.path.join(
             'checkpoints', self.config['checkpoint_folder_name'], 'output.csv')

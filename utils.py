@@ -7,10 +7,7 @@ import numpy as np
 import torch
 import yaml
 from matplotlib import pyplot as plt
-from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-from mydataset import SimpleDataset
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -64,21 +61,6 @@ def show_tensor(tensor: torch.Tensor):
     plt.set_cmap('binary')  # black and white
     plt.title('Visualization of a flow')
     plt.show()
-
-
-def get_dataloader_datasetname_numclasses(root, dataset: str, feature_method: str, batch_size: int = 128,
-                                          shuffle: bool = True):
-    # 从utils.py文件所在位置锚定数据集位置
-    # root = os.path.join(os.path.dirname(__file__), 'dataset', 'processed') ISCX*** 's dir
-    train_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=True)
-    test_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=False)
-    train_loader = DataLoader(dataset=train_dataset,
-                              batch_size=batch_size, shuffle=shuffle)
-    test_loader = DataLoader(dataset=test_dataset,
-                             batch_size=batch_size, shuffle=False)
-    return train_loader, test_loader, train_dataset.name(), train_dataset.get_num_classes()
 
 
 def get_num_classes(path):
