@@ -7,7 +7,7 @@
 *.zip
 /dataset
 /test
-acc
+*acc
 train_loss
 valid_loss
 *.pth
