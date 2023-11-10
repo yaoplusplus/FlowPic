@@ -249,7 +249,7 @@ class Trainer:
         if flag:
             self.saved_acc.append(self.output['valid_acc'][-1])
             torch.save(self.model, os.path.join(  # 由于模型改动很频繁且模型不是很大，直接保存模型
-                self.folder, f"{self.output['valid_acc'][-1]:.4f}" + '.pt'))
+                self.folder, f"{self.output['valid_acc'][-1]:.4f}-epoch_{self.output['epoch'][-1]}" + '.pt'))
             tqdm.write('save model')
 
     def write_output(self):
