@@ -124,11 +124,16 @@ def resnet(num_classes):
     return net
 
 
-def reduce_dim(x):
-    estimator = PCA(n_components=8)
-    x = estimator.fit_transform(x)
-    print(x.shape)
-    pass
+def reduce_dim(x, dst_dim):
+    # sklearn 方法，放在网络forward函数里会丢失梯度信息
+    # estimator = PCA(n_components=n_components)
+    # x = estimator.fit_transform(x)
+    # return x
+
+    # torch方法
+    U, S, V = torch.pca_lowrank(x, q=dst_dim)
+    # U: mxq matrix, S：q-vector V:nxq matrix
+    return torch.mm(x, V)
 
 
 class FlowPicNet_32(nn.Module):
@@ -149,7 +154,7 @@ class FlowPicNet_32(nn.Module):
         # 6*5*5
         # paper里提到了PAC
         self.flatten = Flatten()
-        self.linear1 = Sequential(Linear(in_features=120, out_features=120), ReLU(), Dropout(0.5))
+        self.linear1 = Sequential(Linear(in_features=120, out_features=84), ReLU(), Dropout(0.5))
         # self.linear2 = Sequential(Linear(in_features=64, out_features=self.num_classes), Softmax())
         self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
 
@@ -172,6 +177,10 @@ class FlowPicNet_32(nn.Module):
         x = self.flatten(x)
         if self.show_temp_out:
             print('after flatten: ', x.shape)
+        assert x.shape[0] >= 120  # 实际上就是batch_size，因为要降低维度到120，函数要求任意维度都要大于120
+        # PCA降维
+        x = reduce_dim(x, dst_dim=120)
+        print('after reduce_dim: ', x.shape)
         x = self.linear1(x)
         if self.show_temp_out:
             print('after linear1: ', x.shape)
@@ -191,10 +200,16 @@ class JointFlowPicNet(nn.Module):
 
 if __name__ == '__main__':
     # 测试模型输出
-    model = FlowPicNet(num_classes=4, show_temp_out=False)
-    # t = torch.unsqueeze(torch.rand([1, 1500, 1500]), 0)
-    t = torch.rand([1, 1, 1500, 1500])
+    model = FlowPicNet_32(num_classes=4, show_temp_out=True)
+    t = torch.rand([256, 1, 32, 32])
     print(model(t).shape)
     # pass
-    # tensor = torch.rand([16, 25])
-    # reduce_dim(tensor)
+
+    # tensor = torch.rand([256, 400])
+    # reduce_dim(tensor, n_components=120)
+    # U, S, V = torch.pca_lowrank(tensor, q=120)
+    # print(U.shape)
+    # print(S.shape)
+    # print(V.shape)
+    # print(torch.mm(tensor, V).shape)
+
