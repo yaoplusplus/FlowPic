@@ -136,7 +136,7 @@ def reduce_dim(x, dst_dim):
     return torch.mm(x, V)
 
 
-class FlowPicNet_32(nn.Module):
+class MiniFlowPicNet_32(nn.Module):
     def __init__(self, num_classes, show_temp_out=False):
         super().__init__()
         self.num_classes = num_classes
@@ -153,6 +153,7 @@ class FlowPicNet_32(nn.Module):
         self.maxpool2 = MaxPool2d(kernel_size=2)
         # 6*5*5
         # paper里提到了PAC
+        self.PCA = reduce_dim
         self.flatten = Flatten()
         self.linear1 = Sequential(Linear(in_features=120, out_features=84), ReLU(), Dropout(0.5))
         # self.linear2 = Sequential(Linear(in_features=64, out_features=self.num_classes), Softmax())
@@ -177,9 +178,9 @@ class FlowPicNet_32(nn.Module):
         x = self.flatten(x)
         if self.show_temp_out:
             print('after flatten: ', x.shape)
-        assert x.shape[0] >= 120  # 实际上就是batch_size，因为要降低维度到120，函数要求任意维度都要大于120
+        assert x.shape[1] >= 120  # 实际上就是batch_size，因为要降低维度到120，函数要求任意维度都要大于120
         # PCA降维
-        x = reduce_dim(x, dst_dim=120)
+        x = self.PCA(x.squeeze(0), dst_dim=120).unsqueeze(0)
         print('after reduce_dim: ', x.shape)
         x = self.linear1(x)
         if self.show_temp_out:
@@ -200,8 +201,8 @@ class JointFlowPicNet(nn.Module):
 
 if __name__ == '__main__':
     # 测试模型输出
-    model = FlowPicNet_32(num_classes=4, show_temp_out=True)
-    t = torch.rand([256, 1, 32, 32])
+    model = MiniFlowPicNet_32(num_classes=4, show_temp_out=True)
+    t = torch.rand([128, 1, 32, 32])
     print(model(t).shape)
     # pass
 
@@ -212,4 +213,3 @@ if __name__ == '__main__':
     # print(S.shape)
     # print(V.shape)
     # print(torch.mm(tensor, V).shape)
-
