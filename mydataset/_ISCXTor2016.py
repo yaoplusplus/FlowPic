@@ -1,13 +1,16 @@
 import glob
 import os
+
+import PIL.Image as Image
 import torch
 import numpy as np
 import pandas as pd
-from typing import List
+from typing import List, Optional, Callable
 
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+import data_augmentations
 from base._basedataset import BaseEIMTCFlowPicDataset
 from utils import get_num_classes
 
@@ -79,8 +82,7 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
     def get_num_classes(self):
         dirs_count = 0
-        files_or_dirs = glob.glob(os.path.join(
-            self.root, self.feature_method, self.flag, '*'))
+        files_or_dirs = glob.glob(os.path.join(self.root, self.feature_method, self.flag, '*'))
         for file_or_dir in files_or_dirs:
             if os.path.isdir(file_or_dir):
                 dirs_count += 1
@@ -103,34 +105,68 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
 
 class SimpleDataset(Dataset):
-    def __init__(self, dataset: str, feature_method: str, train: bool, root):
+    def __init__(self, dataset: str, feature_method: str, train: bool, root, transform: Optional[Callable] = None,
+                 target_transform: Optional[Callable] = None, train_csv_custom: str = None,
+                 test_csv_custom: str = None):
         """
         dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
         feature_method : FlowPic, MyFlowPic, Joint, JointFeature
+        train\test_csv_custom : 指定train.csv 或者 test.csv 例如 train-ChangeRTT.csv test.csv
         """
         self.dataset = dataset
         self.feature_method = feature_method
+        # 是否分别从两个文件夹的csv文件读取数据的标志位
+        self.part_csv = True if dataset == 'VoIP_Video_Application_NonVPN' and 'FlowPicOverlapped' in feature_method else False
         self.root = os.path.join(root, self.dataset, self.feature_method)
         self.train = train
+        if self.part_csv:
+            self.root = self.root + '_' + 'train' if self.train else self.root + '_' + 'test'
+        self.train_csv_custom = train_csv_custom
+        self.test_csv_custom = test_csv_custom
         self.load_data()
-        self.num_classes = get_num_classes(self.root)
+        self.num_classes = get_num_classes(self.root)  # 因为csv分散到两个文件夹了，此处逻辑伴随改变
+        self.transform = transform
+        self.target_transform = target_transform
+
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
         file_path, label = self.data.iloc[index]
+        file_path = os.path.join(self.root, file_path)
         key = 'feature' if 'JointFeature' in self.feature_method else 'flowpic'
-        feature = np.load(file_path)[key].astype(float)  # uint16 -> float64
-        feature = torch.FloatTensor(feature)  # dtype: torch.float32
-        label = torch.LongTensor([label])  # dtype: torch.int64
+
+        if self.transform is not None and self.train:  # 至少有一个是ToTensor
+            # 自定义的transform，输入是.npz加载的对象，含有flowpic和info两部分
+            if self.transform.name in ['ChangeRTT', 'TimeShift', 'PacketLoss']:
+                feature = self.transform(np.load(file_path, allow_pickle=True))
+            else:
+                # 内置的transform，输入是PIL.Image.Image
+                feature_array = np.load(file_path)[key].astype(np.float32)  # uint16 -> np.float32
+                feature_PILImg = Image.fromarray(feature_array)
+                feature = self.transform(feature_PILImg)
+        else:
+            feature = np.load(file_path, allow_pickle=True)[key].astype(np.float32)
+        # if self.target_transform:
+        # label = np.array([[label]])
+        # label = self.target_transform(label)
+
+        # feature = torch.FloatTensor(feature)  # dtype: torch.float32 # 这个放到transform里
+        label = torch.LongTensor([label])  # dtype: torch.int64 # TODO 这个放到transform里
+
         return feature, label
 
     def name(self):
         return '_'.join([self.dataset, self.feature_method])
 
     def load_data(self):
-        file = 'train.csv' if self.train else 'test.csv'
+        if self.train and self.train_csv_custom:
+            file = self.train_csv_custom
+        elif not self.train and self.test_csv_custom:
+            file = self.test_csv_custom
+        else:
+            file = 'train.csv' if self.train else 'test.csv'
         self.data = pd.read_csv(os.path.join(self.root, file))
 
 

@@ -1,4 +1,6 @@
 import os
+import ast
+from PIL import ImageOps, Image
 import shutil
 from typing import Dict
 
@@ -13,23 +15,27 @@ from torch.nn.functional import one_hot
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as trans
+
+import data_augmentations
+from data_augmentations import ChangeRTT, TimeShift, PacketLoss
 from torchvision.datasets import MNIST
 from tqdm import tqdm
 import classifier
 
-from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet, PureClassifier
-from utils import load_config_from_yaml, save_config_to_yaml, get_time, device
+from classifier import FlowPicNet, FlowPicNet_adaptive, LeNet, PureClassifier, MiniFlowPicNet_32
+from utils import load_config_from_yaml, save_config_to_yaml, get_time, device, print_hist, show_hist, map_hist
 from mydataset import SimpleDataset
 
 
 def get_dataloader_datasetname_numclasses(root, dataset: str, feature_method: str, batch_size: int = 128,
-                                          shuffle: bool = True):
-    # 从utils.py文件所在位置锚定数据集位置
-    # root = os.path.join(os.path.dirname(__file__), 'dataset', 'processed') ISCX*** 's dir
+                                          shuffle: bool = True, transform=None, target_transform=None,
+                                          train_csv_file: str = None,
+                                          test_csv_file: str = None):
     train_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=True)
+        dataset=dataset, feature_method=feature_method, root=root, train=True, transform=transform,
+        target_transform=target_transform, train_csv_custom=train_csv_file)
     test_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=False)
+        dataset=dataset, feature_method=feature_method, root=root, train=False, test_csv_custom=test_csv_file)
     train_loader = DataLoader(dataset=train_dataset,
                               batch_size=batch_size, shuffle=shuffle)
     test_loader = DataLoader(dataset=test_dataset,
@@ -46,7 +52,8 @@ def metrics_init(num_classes):
         task="multiclass", average='none', num_classes=num_classes)
     test_auc = torchmetrics.AUROC(
         task="multiclass", average="macro", num_classes=num_classes)
-    return test_acc.to(device), test_recall.to(device), test_precision.to(device), test_auc.to(device)
+    confusion_matrix = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+    return test_acc.to(device), confusion_matrix, test_recall.to(device), test_precision.to(device), test_auc.to(device)
 
 
 class Trainer:
@@ -63,9 +70,8 @@ class Trainer:
         # 1. 参数实例化
         self.config = load_config_from_yaml(config)
         self.init_by_config()
-        self.test_acc, self.test_recall, self.test_precision, self.test_auc = metrics_init(
+        self.test_acc, self.confusion_matrix, self.test_recall, self.test_precision, self.test_auc, = metrics_init(
             num_classes=self.num_classes)
-        self.epochs = self.config['epochs']
 
     def _train_epoch(self, epoch):
         """
@@ -91,6 +97,9 @@ class Trainer:
 
             self.opt.zero_grad()
             loss.backward()
+            # 打印debug信息
+            if self.debug and self.grad:
+                self.debug_info()
             self.opt.step()
             losses += loss.item()
 
@@ -106,7 +115,7 @@ class Trainer:
         self.test_acc.reset()
         batch_loss = losses / len(self.train_dl)
         # 一个epoch才应该更新lr_scheduler，而不是每一个iter
-        if hasattr(self, 'lr_scheduler'):
+        if self.lr_scheduler:
             if self.lr_scheduler.__class__.__name__ == 'StepLR':
                 self.lr_scheduler.step()
             elif self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
@@ -153,9 +162,14 @@ class Trainer:
 
     def init_by_config(self):
         # 基础参数
+        self.epochs = self.config['epochs']
+        self.debug = self.config['debug']
+        self.grad = self.config['grad']
         self.dataset_root = self.config['dataset_root']
         self.dataset = self.config['dataset']
         self.feature_method = self.config['feature_method']
+        self.train_csv_file = self.config['train_csv_file']
+        self.test_csv_file = self.config['test_csv_file']
         self.batch_size = self.config['batch_size']
         self.lr = self.config['lr']
         self.shuffle = self.config['shuffle']
@@ -164,28 +178,40 @@ class Trainer:
         else:
             self.part = None
         # 基础组件
+        # self.transform = []
+        # for transform in self.config['transforms']:
+        #     if hasattr(trans, transform):
+        #         # 输入是PIL image
+        #         self.transform.append(getattr(trans, transform))
+        #     else:
+        #         # 输入是info和flowpic的压缩包（.npz文件load的对象）
+        #         self.transform.append(getattr(data_augmentations, transform))
+        self.transform = getattr(data_augmentations, self.config['transform'])() \
+            if self.config['transform'] is not None else None
 
+        self.target_transform = trans.ToTensor()
         self.train_dl, self.val_dl, self.dataset_name, self.num_classes = \
             get_dataloader_datasetname_numclasses(
                 root=self.dataset_root,
                 dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size,
-                shuffle=self.shuffle)
+                shuffle=self.shuffle, transform=self.transform, target_transform=self.target_transform,
+                train_csv_file=self.train_csv_file, test_csv_file=self.test_csv_file)
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
         self.model = eval(self.config['model']).to(device)  # 模型实例
         self.opt = eval(self.config['optim'])  # 优——化器实例
         # self.config['writer'] = eval(self.config['writer'])
         assert isinstance(self.model, torch.nn.Module)
-        if self.config['lr_scheduler']:
-            self.lr_scheduler = eval(self.config['lr_scheduler'])
+        self.lr_scheduler = eval(self.config['lr_scheduler']) if 'lr_scheduler' in self.config else None
         assert isinstance(self.loss_func, nn.modules.loss._Loss)
         # assert ismethod(config['optim'], type(torch.nn.modules))
 
     def archive(self):
         # 配置保存
+        lr_scheduler = self.config['lr_scheduler'].split('(')[0] if self.lr_scheduler else ''
         checkpoint_folder_name_ = self.model.name() \
                                   + '-' + self.dataset_name \
                                   + '-' + self.config['optim'].split('(')[0].split('.')[1] \
-                                  + '-' + self.config['lr_scheduler'].split('(')[0] \
+                                  + '-' + lr_scheduler \
                                   + '-' + get_time()
 
         self.config['checkpoint_folder_name'] = checkpoint_folder_name_
@@ -200,11 +226,15 @@ class Trainer:
         self.train_acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_acc'))
         self.train_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_loss'))
         self.valid_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_loss'))
+        self.lr_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'lr'))
+        # if self.debug:
+        #     self.gard_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'grad'))
 
     def train(self):
-
-        self.archive()  # not save config and output while debugging
-        self.init_logger()
+        # not save config and output while debugging
+        if not self.debug:
+            self.archive()
+            self.init_logger()
         self.output = {'epoch': [], 'cur_lr': [],
                        'train_loss': [], 'val_loss': [], 'valid_acc': [], 'train_acc': []}
         for epoch in range(1, self.epochs + 1):
@@ -217,7 +247,7 @@ class Trainer:
             valid_epoch_loss, valid_epoch_acc = self._valid_epoch(epoch)
 
             tqdm.write(
-                f"\ntrain_loss: {train_epoch_loss}\nval_loss: {valid_epoch_loss}\nval_acc: {valid_epoch_acc * 100:.4f}%\n{train_epoch_acc * 100:.4f}")
+                f"\ntrain_loss: {train_epoch_loss}\nval_loss: {valid_epoch_loss}\nval_acc: {valid_epoch_acc * 100:.4f}%\ntrain_acc: {train_epoch_acc * 100:.4f}%\n")
             # 保存输出到csv
             self.output['epoch'].append(epoch)
             self.output['cur_lr'].append(cur_lr)
@@ -226,16 +256,16 @@ class Trainer:
             self.output['valid_acc'].append(valid_epoch_acc)
             self.output['train_acc'].append(valid_epoch_acc)
             #  由于保存输出会转换self.output的格式，所以先保存模型
-            self.save()
-            self.write_output()
-
-            # 记录输出到tensorboard
-            self.valid_acc_logger.add_scalar('data', valid_epoch_acc, epoch)
-            self.train_acc_logger.add_scalar('data', train_epoch_acc, epoch)
-            self.valid_loss_logger.add_scalar('data', valid_epoch_loss, epoch)
-            self.train_loss_logger.add_scalar('data', train_epoch_loss, epoch)
-
-            # 保存模型参数
+            if not self.debug:
+                # 保存模型参数
+                self.save()
+                self.write_output()
+                # 记录输出到tensorboard
+                self.valid_acc_logger.add_scalar('data', valid_epoch_acc, epoch)
+                self.train_acc_logger.add_scalar('data', train_epoch_acc, epoch)
+                self.valid_loss_logger.add_scalar('data', valid_epoch_loss, epoch)
+                self.train_loss_logger.add_scalar('data', train_epoch_loss, epoch)
+                self.lr_logger.add_scalar('data', cur_lr, epoch)
 
     def save(self):
         flag = False
@@ -266,3 +296,9 @@ class Trainer:
         else:
             # 文件已创建，不包含表头
             output2write.to_csv(csv_path, mode='a+', index=False)
+
+    def debug_info(self):
+        for name, param in self.model.named_parameters():
+            if param.grad is not None:
+                tqdm.write(f'Parameter: {name}')
+                tqdm.write(f'Gradient: {param.grad}')

@@ -142,9 +142,32 @@ if __name__ == '__main__':
     # JointFeature_trained_nonTor_model
     nonTor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_nonTor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-16/0.8582.pt'
     vpn_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-08_16-53-26/0.9182.pt'
-
-    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='ISCXTor2016_nonTor',
+    app_model = ''
+    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='VoIP_Video_Application_NonVPN',
                         feature_methods=['FlowPic', 'MyFlowPic'],
-                        para_dict=nonTor_model,
-                        feature_extractor='FlowPicNet', folder_name='JointFeature_trained_nonTor_model')
+                        para_dict=app_model,
+                        feature_extractor='FlowPicNet', folder_name='JointFeature_trained_app_model')
     pass
+
+
+def map_hist(hist):
+    nonzero_indexes = np.nonzero(hist)
+    for x, y in zip(nonzero_indexes[0], nonzero_indexes[1]):
+        if hist[x][y] > 255:
+            hist[x][y] = 255
+    return hist.astype(np.uint8)
+
+
+def print_hist(hist):
+    # tensor
+    if isinstance(hist, torch.Tensor):
+        if len(hist.shape) == 3 and hist.shape[0] == 1:
+            hist = hist.squeeze(0)
+            nonzero_indexes = np.nonzero(hist)  # [82,2]
+            for index in nonzero_indexes:
+                print(index[0], index[1], hist[index[0]][index[1]])
+            return
+
+    nonzero_indexes = np.nonzero(hist)
+    for x, y in zip(nonzero_indexes[0], nonzero_indexes[1]):
+        print(x, y, hist[x][y])

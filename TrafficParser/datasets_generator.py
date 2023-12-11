@@ -11,10 +11,10 @@ from sklearn.model_selection import train_test_split
 
 CLASS = "browsing"
 TEST_SIZE = 0.1
-DATASET_DIR = "../datasets/"
+DATASET_DIR = "../dataset/" # TODO change
 
 VPN_TYPES = {
-    "reg": glob.glob("../raw_csvs/classes/**/reg/*.npy"),
+    "reg": glob.glob("../raw_csvs/classes/**/reg/*.npy"), # means regular
     "vpn": glob.glob("../raw_csvs/classes/**/vpn/*.npy"),
     "tor": glob.glob("../raw_csvs/classes/**/tor/*.npy")
 }

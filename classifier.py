@@ -91,7 +91,8 @@ class LeNet(nn.Module):
             nn.MaxPool2d(2, 2)
         )
         self.fc = nn.Sequential(
-            nn.Linear(16 * 4 * 4, 120),
+            # nn.Linear(16 * 4 * 4, 120),#28
+            nn.Linear(16 * 5 * 5, 120),#32
             nn.Sigmoid(),
             nn.Linear(120, 84),
             nn.Sigmoid(),
@@ -102,6 +103,8 @@ class LeNet(nn.Module):
         feature = self.conv(img)
         output = self.fc(feature.view(img.shape[0], -1))
         return output
+    def name(self):
+        return 'LeNet_32'
 
 
 class FlowPicNet_adaptive(FlowPicNet):
@@ -153,11 +156,19 @@ class MiniFlowPicNet_32(nn.Module):
         self.maxpool2 = MaxPool2d(kernel_size=2)
         # 6*5*5
         # paper里提到了PAC
-        self.PCA = reduce_dim
+        self.PCA = None
+        # self.PCA = None
         self.flatten = Flatten()
-        self.linear1 = Sequential(Linear(in_features=120, out_features=84), ReLU(), Dropout(0.5))
-        # self.linear2 = Sequential(Linear(in_features=64, out_features=self.num_classes), Softmax())
-        self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
+        # 一言难尽啊，因为batch_size=128时，
+        if self.PCA:
+            self.PCA_dst_dim = 120
+            self.linear1 = Sequential(Linear(in_features=120, out_features=84), ReLU(), Dropout(0.5))
+            self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
+        else:
+            self.linear1 = Sequential(Linear(in_features=400, out_features=120), ReLU(),
+                                      Linear(in_features=120, out_features=84), ReLU(),
+                                      Dropout(0.5))
+            self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
 
     def forward(self, x):
         x = self.conv1(x)
@@ -179,9 +190,11 @@ class MiniFlowPicNet_32(nn.Module):
         if self.show_temp_out:
             print('after flatten: ', x.shape)
         assert x.shape[1] >= 120  # 实际上就是batch_size，因为要降低维度到120，函数要求任意维度都要大于120
-        # PCA降维
-        x = self.PCA(x.squeeze(0), dst_dim=120).unsqueeze(0)
-        print('after reduce_dim: ', x.shape)
+        # PCA降维 TODO batch_size低于dis_dim的batch，就不进行降维了，这意味着，后面的两个全连接层。。
+        if self.PCA:
+            x = self.PCA(x.squeeze(0), dst_dim=self.PCA_dst_dim)
+        if self.show_temp_out:
+            print('after reduce_dim: ', x.shape)
         x = self.linear1(x)
         if self.show_temp_out:
             print('after linear1: ', x.shape)
@@ -201,15 +214,5 @@ class JointFlowPicNet(nn.Module):
 
 if __name__ == '__main__':
     # 测试模型输出
-    model = MiniFlowPicNet_32(num_classes=4, show_temp_out=True)
-    t = torch.rand([128, 1, 32, 32])
-    print(model(t).shape)
-    # pass
 
-    # tensor = torch.rand([256, 400])
-    # reduce_dim(tensor, n_components=120)
-    # U, S, V = torch.pca_lowrank(tensor, q=120)
-    # print(U.shape)
-    # print(S.shape)
-    # print(V.shape)
-    # print(torch.mm(tensor, V).shape)
+    pass
