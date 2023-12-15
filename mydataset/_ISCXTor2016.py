@@ -106,8 +106,7 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
 class SimpleDataset(Dataset):
     def __init__(self, dataset: str, feature_method: str, train: bool, root, transform: Optional[Callable] = None,
-                 target_transform: Optional[Callable] = None, train_csv_custom: str = None,
-                 test_csv_custom: str = None):
+                 target_transform: Optional[Callable] = None, custom_csv: str = None):
         """
         dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
         feature_method : FlowPic, MyFlowPic, Joint, JointFeature
@@ -115,19 +114,21 @@ class SimpleDataset(Dataset):
         """
         self.dataset = dataset
         self.feature_method = feature_method
+        self.train = train
         # 是否分别从两个文件夹的csv文件读取数据的标志位
         self.part_csv = True if dataset == 'VoIP_Video_Application_NonVPN' and 'FlowPicOverlapped' in feature_method else False
-        self.root = os.path.join(root, self.dataset, self.feature_method)
-        self.train = train
+        if dataset != 'Video_VoIP_splited':
+            self.root = os.path.join(root, self.dataset, self.feature_method)
+        else:
+            self.suffix = 'train' if self.train else 'test'
+            self.root = os.path.join(root, self.dataset, self.feature_method, self.suffix)
         if self.part_csv:
             self.root = self.root + '_' + 'train' if self.train else self.root + '_' + 'test'
-        self.train_csv_custom = train_csv_custom
-        self.test_csv_custom = test_csv_custom
+        self.custom_csv = custom_csv
         self.load_data()
         self.num_classes = get_num_classes(self.root)  # 因为csv分散到两个文件夹了，此处逻辑伴随改变
         self.transform = transform
         self.target_transform = target_transform
-
 
     def __len__(self):
         return len(self.data)
@@ -161,13 +162,73 @@ class SimpleDataset(Dataset):
         return '_'.join([self.dataset, self.feature_method])
 
     def load_data(self):
-        if self.train and self.train_csv_custom:
-            file = self.train_csv_custom
-        elif not self.train and self.test_csv_custom:
-            file = self.test_csv_custom
+        if self.custom_csv:
+            file = self.custom_csv
         else:
             file = 'train.csv' if self.train else 'test.csv'
         self.data = pd.read_csv(os.path.join(self.root, file))
+
+
+class SimpleSplitDataset(Dataset):
+    # like── Video_VoIP_splited          -dataset
+    #     ├── DELTA_T=15-IMG_DIM=1500    -feature_method
+    #     │      ├── test
+    #     │      │      ├── buster_voip  -class
+    def __init__(self, dataset: str, feature_method: str, train: bool, root, transform: Optional[Callable] = None,
+                 target_transform: Optional[Callable] = None, train_csv_custom: str = None,
+                 test_csv_custom: str = None):
+        """
+        dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
+        feature_method : FlowPic, MyFlowPic, Joint, JointFeature
+        train\test_csv_custom : 指定train.csv 或者 test.csv 例如 train-ChangeRTT.csv test.csv
+        """
+        self.dataset = dataset
+        self.feature_method = feature_method
+        self.train = train
+        self.subdir = 'train' if self.train else 'test'
+        self.root = os.path.join(root, self.dataset, self.feature_method, self.subdir)
+        self.train_csv_custom = train_csv_custom
+        self.test_csv_custom = test_csv_custom
+        self.load_data()
+        self.num_classes = get_num_classes(self.root)  # 因为csv分散到两个文件夹了，此处逻辑伴随改变
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        file_path, label = self.data.iloc[index]
+        file_path = os.path.join(self.root, file_path)
+        key = 'feature' if 'JointFeature' in self.feature_method else 'flowpic'
+
+        if self.transform is not None and self.train:  # 至少有一个是ToTensor
+            # 自定义的transform，输入是.npz加载的对象，含有flowpic和info两部分
+            if self.transform.name in ['ChangeRTT', 'TimeShift', 'PacketLoss']:
+                feature = self.transform(np.load(file_path, allow_pickle=True))
+            else:
+                # 内置的transform，输入是PIL.Image.Image
+                feature_array = np.load(file_path)[key].astype(np.float32)  # uint16 -> np.float32
+                feature_PILImg = Image.fromarray(feature_array)
+                feature = self.transform(feature_PILImg)
+        else:
+            feature = np.load(file_path, allow_pickle=True)[key].astype(np.float32)
+        # if self.target_transform:
+        # label = np.array([[label]])
+        # label = self.target_transform(label)
+
+        # feature = torch.FloatTensor(feature)  # dtype: torch.float32 # 这个放到transform里
+        label = torch.LongTensor([label])  # dtype: torch.int64 # TODO 这个放到transform里
+
+        return feature, label
+
+    def name(self):
+        return '_'.join([self.dataset, self.feature_method])
+
+    def load_data(self):
+        #     file = 'train.csv' if self.train else 'test.csv'
+        # self.data = pd.read_csv(os.path.join(self.root, file))
+        pass
 
 
 class MultiDataset(Dataset):
