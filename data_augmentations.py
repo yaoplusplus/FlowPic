@@ -3,7 +3,7 @@
 import ast
 from typing import List, Optional, Union
 from abc import abstractmethod
-
+from utils import print_hist
 import numpy as np
 
 MTU = 1500
@@ -42,10 +42,12 @@ class BasicTransform(object):
         Returns:
             torch.Tensor: 处理后的flowpic
         """
-        np.random.seed()
         # numpy.ndarray -> dist
         if self.rebuild:
-            info = ast.literal_eval(str(flowpic['info']))
+            try:
+                info = ast.literal_eval(str(flowpic['info']))
+            except:
+                print('info 加载失败')
             # 获取相对时间
             self.time_stamps = (
                 np.array(info['time_stamps']) - info['start_time']) / 1000
@@ -210,28 +212,41 @@ class PacketNum2Nbytes(BasicTransform):
     def __init__(self):
         # 此转换不需要factor
         super().__init__()
-        self.bins = np.linspace(0, MTU, self.image_dims[0]+1)
-        self.nbytes = [0 for i in range(self.image_dims[0])]
-
-    def plot(self):
-
-        pass
 
     def transform(self):
+        self.bins = np.linspace(0, MTU, self.image_dims[0]+1)
+        self.nbytes_hist = np.zeros((self.image_dims[0], self.image_dims[0]))
         # 根据self.bins计算每一个bin中packet的size之和——nbytes
+        count = 0
         for ts, size in zip(self.time_stamps, self.sizes):
+            # 时间上定位区间
             for i in range(self.image_dims[0]):
                 if self.bins[i] <= ts < self.bins[i+1]:
-                    self.nbytes[i] += size
-        # 生成直方图数据
-        hist, X_edge, Y_edge = np.histogram2d(
-            self.time_stamps, self.sizes, bins=self.bins)
-        # 修改直方图
-        indexes = np.nonzero(hist)
-        for x, y in zip(indexes[0], indexes[1]):
-            hist[x, y] = self.nbytes[x]
-        return hist
+                    # 大小上定位区别
+                    for j in range(self.image_dims[0]):
+                        if self.bins[j] <= size < self.bins[j+1]:
+                            self.nbytes_hist[i][j] += size
+                            count += 1
+        assert count == len(self.sizes)
+        return self.nbytes_hist
 
     @property
     def name(self):
         return 'PacketNum2Nbytes'
+
+
+if __name__ == '__main__':
+    time_stamps = [1000, 2000, 3000, 78000, 167000]
+    sizes = [200, 210, 220, 500, 1300]
+    flowpic = {
+        'flowpic': {},
+        'info': {
+            'image_dims': [32, 32],
+            'start_time': time_stamps[0],
+            'time_stamps': time_stamps,
+            'sizes': sizes
+        }
+    }
+
+    tranform = PacketNum2Nbytes()
+    print_hist(tranform(flowpic))
