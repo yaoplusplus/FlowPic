@@ -6,6 +6,8 @@ from abc import abstractmethod
 
 import numpy as np
 
+MTU = 1500
+
 TimeStamps = List[float]
 Sizes = List[int]
 
@@ -20,16 +22,14 @@ Sizes = List[int]
 
 
 class BasicTransform(object):
-    def __init__(self, random_seed: int = 1114, factor: Union[List[int], int] = None, debug: bool = False,
+    def __init__(self, factor: Union[List[int], int] = None, debug: bool = False,
                  rebuild: bool = True):
         """
             Args:
-            random_seed : 随机数种子
             factor : [a_min.a_max]，随机变化的参数
             debug : 是否打印debug信息
             rebuild : 是否从原始数据进行transform 和 重建flowpic
         """
-        self.random_seed = random_seed
         self.factor = factor
         self._debug = debug
         self.rebuild = rebuild
@@ -37,22 +37,22 @@ class BasicTransform(object):
     def __call__(self, flowpic):
         """
         Args:
-            flowpic ( .npz): 一个包含‘flowpic‘和’info’的dict
+            flowpic ( .npz): 一个包含'flowpic'和'info'的dict
 
         Returns:
             torch.Tensor: 处理后的flowpic
         """
-        np.random.seed(self.random_seed)
+        np.random.seed()
         # numpy.ndarray -> dist
         if self.rebuild:
             info = ast.literal_eval(str(flowpic['info']))
             # 获取相对时间
-            self.time_stamps = (np.array(info['time_stamps']) - info['start_time']) / 1000
+            self.time_stamps = (
+                np.array(info['time_stamps']) - info['start_time']) / 1000
             self.sizes = info['sizes']
             self.image_dims = info['image_dims']
             self.bin_factor = 1500 // self.image_dims[0]
-            self.transform()
-            return self.hist
+            return self.transform()
         else:
             indexes = np.nonzero(flowpic['flowpic'])
             for x, y in zip(indexes[0], indexes[1]):
@@ -74,7 +74,7 @@ class BasicTransform(object):
         assert len(self.sizes) == len(self.time_stamps)
         # -> [1500,1500]
         ts_norm = ((np.array(self.time_stamps) - self.time_stamps[0]) / (
-                self.time_stamps[-1] - self.time_stamps[0])) * 1500
+            self.time_stamps[-1] - self.time_stamps[0])) * 1500
         H, X_edge, Y_edge = np.histogram2d(ts_norm, self.sizes,
                                            bins=(
                                                range(0, 1500 + 1, 1),
@@ -112,13 +112,13 @@ class ChangeRTT(BasicTransform):
     由于是对RTT的操作，所以需要对time_stamps, sizes 进行操作，然后重建flowpic
     """
 
-    def __init__(self, random_seed: int = 1114, factor: Union[List[int], int] = None, debug: bool = False,
+    def __init__(self, factor: Union[List[int], int] = None, debug: bool = False,
                  relative: bool = True):
         """
         Args:
             relative : tranform应用在绝对时间还是相对时间序列上的指标
         """
-        super().__init__(random_seed, factor, debug)
+        super().__init__(factor, debug)
         self.relative = relative
 
     def transform(self):
@@ -134,7 +134,8 @@ class ChangeRTT(BasicTransform):
             # 绝对时间
             self.time_stamps[i] = self.time_stamps[i] * a
 
-        self.time_stamps, self.sizes = zip(*sorted(zip(self.time_stamps, self.sizes), key=lambda b: b[0]))
+        self.time_stamps, self.sizes = zip(
+            *sorted(zip(self.time_stamps, self.sizes), key=lambda b: b[0]))
         if self.debug:
             print(f'******ChangeRTT******')
             print(f'times_stamps: {self.time_stamps}\nsizes: {self.sizes}\n')
@@ -143,6 +144,7 @@ class ChangeRTT(BasicTransform):
         if self.debug:
             print(f'******Sort******')
             print(f'times_stamps: {self.time_stamps}\nsizes: {self.sizes}\n')
+        return self.hist
 
     @property
     def name(self):
@@ -150,8 +152,8 @@ class ChangeRTT(BasicTransform):
 
 
 class TimeShift(BasicTransform):
-    def __init__(self, random_seed: int = 1114, factor: Union[List[int], int] = None):
-        super().__init__(random_seed, factor)
+    def __init__(self, factor: Union[List[int], int] = None):
+        super().__init__(factor)
 
     def transform(self):
         if self.factor == None:
@@ -160,9 +162,11 @@ class TimeShift(BasicTransform):
         for i in range(len(self.sizes)):
             b = np.random.uniform(*self.factor)
             self.time_stamps[i] = self.time_stamps[i] + b
-        self.time_stamps, self.sizes = zip(*sorted(zip(self.time_stamps, self.sizes), key=lambda b: b[0]))
+        self.time_stamps, self.sizes = zip(
+            *sorted(zip(self.time_stamps, self.sizes), key=lambda b: b[0]))
         # 时间移动后,要重新生成相对时间序列
         self.time_stamps = (np.array(self.time_stamps) - self.time_stamps[0])
+        return self.hist
 
     @property
     def name(self):
@@ -170,12 +174,13 @@ class TimeShift(BasicTransform):
 
 
 class PacketLoss(BasicTransform):
-    def __init__(self, random_seed: int = 1114, factor: Union[List[int], int] = None):
-        super().__init__(random_seed, factor)
+    def __init__(self, factor: Union[List[int], int] = None):
+        super().__init__(factor)
 
     def transform(self):
         delta_t = 0.1
-        self.factor = self.time_stamps[np.random.randint(len(self.time_stamps))]
+        self.factor = self.time_stamps[np.random.randint(
+            len(self.time_stamps))]
         # self.time_stamps = list(self.time_stamps)
         # self.sizes = list(self.sizes)
         t_max = self.factor + delta_t
@@ -190,7 +195,43 @@ class PacketLoss(BasicTransform):
                     # self.sizes.pop(i)
                     # self.time_stamps.pop(i)
             pass
+        return self.hist
 
     @property
     def name(self):
         return 'PacketLoss'
+
+
+class PacketNum2Nbytes(BasicTransform):
+    """
+    将直方图数据中的num_packet更换为nbytes之和
+    """
+
+    def __init__(self):
+        # 此转换不需要factor
+        super().__init__()
+        self.bins = np.linspace(0, MTU, self.image_dims[0]+1)
+        self.nbytes = [0 for i in range(self.image_dims[0])]
+
+    def plot(self):
+
+        pass
+
+    def transform(self):
+        # 根据self.bins计算每一个bin中packet的size之和——nbytes
+        for ts, size in zip(self.time_stamps, self.sizes):
+            for i in range(self.image_dims[0]):
+                if self.bins[i] <= ts < self.bins[i+1]:
+                    self.nbytes[i] += size
+        # 生成直方图数据
+        hist, X_edge, Y_edge = np.histogram2d(
+            self.time_stamps, self.sizes, bins=self.bins)
+        # 修改直方图
+        indexes = np.nonzero(hist)
+        for x, y in zip(indexes[0], indexes[1]):
+            hist[x, y] = self.nbytes[x]
+        return hist
+
+    @property
+    def name(self):
+        return 'PacketNum2Nbytes'

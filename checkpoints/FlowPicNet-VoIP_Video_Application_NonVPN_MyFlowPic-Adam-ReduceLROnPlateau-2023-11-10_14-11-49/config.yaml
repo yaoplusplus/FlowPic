@@ -1,0 +1,18 @@
+batch_size: 256
+# 这个参数方便切换不同数据集，更加灵活
+dataset_root: '/home/cape/data/trace/new_processed' # 测试
+#dataset_root: '/home/cape/data/trace' # 测试old dataset
+dataset: VoIP_Video_Application_NonVPN # test_radio=0.1
+
+feature_method: MyFlowPic
+#feature_method: JointFeature
+
+shuffle : True
+epochs: 200
+loss_func: nn.CrossEntropyLoss()
+
+model: FlowPicNet_adaptive(self.num_classes,liner1_in_feature=4500)
+#model: PureClassifier(num_classes=self.num_classes,in_features=9000,out_features=100)
+lr: 0.001 # 0.001下验证集精度比训练集精度差的有些多,见FlowPicNet-VoIP_Video_Application_NonVPN_FlowPic-Adam-ReduceLROnPlateau-2023-11-10_12-22-02
+lr_scheduler: ReduceLROnPlateau(self.opt,mode='min',factor=0.6,patience=2)
+optim: optim.Adam(params=self.model.parameters(), lr=self.lr,betas=[0.9,0.999])

@@ -1,3 +1,4 @@
+import csv
 import os
 import ast
 from PIL import ImageOps, Image
@@ -13,7 +14,7 @@ from torch.optim.lr_scheduler import StepLR, ReduceLROnPlateau
 import torchmetrics
 from torch.nn.functional import one_hot
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms as trans
 
 import data_augmentations
@@ -30,17 +31,86 @@ from mydataset import SimpleDataset
 def get_dataloader_datasetname_numclasses(root, dataset: str, feature_method: str, batch_size: int = 128,
                                           shuffle: bool = True, transform=None, target_transform=None,
                                           train_csv_file: str = None,
-                                          test_csv_file: str = None):
-    train_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=True, transform=transform,
-        target_transform=target_transform, train_csv_custom=train_csv_file)
-    test_dataset = SimpleDataset(
-        dataset=dataset, feature_method=feature_method, root=root, train=False, test_csv_custom=test_csv_file)
-    train_loader = DataLoader(dataset=train_dataset,
-                              batch_size=batch_size, shuffle=shuffle)
-    test_loader = DataLoader(dataset=test_dataset,
-                             batch_size=batch_size, shuffle=False)
-    return train_loader, test_loader, train_dataset.name(), train_dataset.num_classes
+                                          test_csv_file: str = None,
+                                          val_csv_file: str = None):
+    if 'split' not in dataset:
+        # 非预先划分的数据集, 也不进行数据增强,从数据中按比例划分训练、验证、测试集
+        val = False
+        trainz_radio = 0.8
+        test_radio = 0.1
+        val_radio = 0.1
+
+        _dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=True, transform=transform,
+            target_transform=target_transform, custom_csv=train_csv_file)
+        total_size = len(_dataset)
+
+        if val:
+            val_size = total_size - train_size - test_size
+            train_dataset, temp_dataset = random_split(
+                _dataset, [train_size, test_size + val_size])
+            test_dataset, val_dataset = random_split(
+                temp_dataset, [test_size, val_size])
+            train_loader = DataLoader(
+                train_dataset, batch_size=batch_size, shuffle=True)
+            test_loader = DataLoader(
+                test_dataset, batch_size=batch_size, shuffle=False)
+            val_loader = DataLoader(
+                val_dataset, batch_size=batch_size, shuffle=False)
+            return train_loader, test_loader, val_loader, _dataset.name(), _dataset.num_classes
+        else:
+            test_size = int(total_size*test_radio)
+            train_size = total_size - test_size
+            train_dataset, test_dataset = random_split(
+                _dataset, [train_size, test_size])
+            train_loader = DataLoader(
+                train_dataset, batch_size=batch_size, shuffle=True)
+            test_loader = DataLoader(
+                test_dataset, batch_size=batch_size, shuffle=False)
+            return train_loader, test_loader, None, _dataset.name(), _dataset.num_classes
+
+    elif 'ChangeRTT' in train_csv_file or 'TimeShift' in train_csv_file or 'PacketLoss' in train_csv_file:
+        # 非预先划分的数据集, 只使用数据增强过的训练集
+        train_dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=True, transform=transform,
+            target_transform=target_transform, custom_csv=train_csv_file)
+        test_dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=False, transform=transform,
+            target_transform=target_transform, custom_csv=test_csv_file)
+        val_dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=False, transform=transform,
+            target_transform=target_transform, custom_csv=val_csv_file)
+
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True)
+        test_loader = DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=False)
+        val_loader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False)
+        return train_loader, test_loader, val_loader, train_dataset.name(), train_dataset.num_classes
+    else:
+        # 预先划分的overlap数据集，训练集和验证集是数据增强之后的数据（论文要求），测试集是原始数据
+        train_dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=True, transform=transform,
+            target_transform=target_transform, custom_csv=train_csv_file)
+        test_dataset = SimpleDataset(
+            dataset=dataset, feature_method=feature_method, root=root, train=False, transform=transform,
+            target_transform=target_transform, custom_csv=test_csv_file)
+        val_size = int(0.2 * len(train_dataset))
+        train_size = len(train_dataset) - val_size
+
+        # 使用random_split函数分割数据集
+        train_dataset, val_dataset = random_split(
+            train_dataset, [train_size, val_size])
+
+        # 创建DataLoader实例
+        train_loader = DataLoader(
+            train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(
+            val_dataset, batch_size=batch_size, shuffle=False)
+        test_loader = DataLoader(
+            test_dataset, batch_size=batch_size, shuffle=False)
+        return train_loader, test_loader, val_loader, test_dataset.name(), test_dataset.num_classes
 
 
 def metrics_init(num_classes):
@@ -52,7 +122,8 @@ def metrics_init(num_classes):
         task="multiclass", average='none', num_classes=num_classes)
     test_auc = torchmetrics.AUROC(
         task="multiclass", average="macro", num_classes=num_classes)
-    confusion_matrix = torchmetrics.ConfusionMatrix(task="multiclass", num_classes=num_classes)
+    confusion_matrix = torchmetrics.ConfusionMatrix(
+        task="multiclass", num_classes=num_classes)
     return test_acc.to(device), confusion_matrix, test_recall.to(device), test_precision.to(device), test_auc.to(device)
 
 
@@ -86,10 +157,11 @@ class Trainer:
             feature = feature.to(device)
             label = label.to(device)
             if self.model.name() == 'PureClassifier':
-                feature = feature.squeeze(1)  # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
-            else:
-                feature = feature.unsqueeze(1)  # CNN对输入的形状要求:[batch_size,n_channels,height,width]
+                # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
+                feature = feature.squeeze(1)
+            # CNN对输入的形状要求:[batch_size,n_channels,height,width]
             out = self.model(feature)
+            # label = label.unsqueeze(1)
             onehot_label = one_hot(label, num_classes=self.num_classes).float()
 
             onehot_label = onehot_label.squeeze(1).float()
@@ -102,7 +174,6 @@ class Trainer:
                 self.debug_info()
             self.opt.step()
             losses += loss.item()
-
             pre = nn.Softmax()(out).argmax(dim=1)
             if len(pre.shape) > len(label.shape):
                 pre = pre.squeeze()
@@ -137,9 +208,9 @@ class Trainer:
                 feature = feature.to(device)
                 label = label.to(device)
                 if self.model.name() == 'PureClassifier':
-                    feature = feature.squeeze(1)  # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
-                else:
-                    feature = feature.unsqueeze(1)  # CNN对输入的形状要求:[batch_size,n_channels,height,width]
+                    # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
+                    feature = feature.squeeze(1)
+                # CNN对输入的形状要求:[batch_size,n_channels,height,width]
                 out = self.model(feature)  # 没经过 softmax
                 pre = nn.Softmax()(out).argmax(dim=1)
                 onehot_label = one_hot(
@@ -170,6 +241,7 @@ class Trainer:
         self.feature_method = self.config['feature_method']
         self.train_csv_file = self.config['train_csv_file']
         self.test_csv_file = self.config['test_csv_file']
+        self.val_csv_file = self.config['val_csv_file']
         self.batch_size = self.config['batch_size']
         self.lr = self.config['lr']
         self.shuffle = self.config['shuffle']
@@ -177,6 +249,7 @@ class Trainer:
             self.part = self.config['part']
         else:
             self.part = None
+
         # 基础组件
         # self.transform = []
         # for transform in self.config['transforms']:
@@ -186,33 +259,52 @@ class Trainer:
         #     else:
         #         # 输入是info和flowpic的压缩包（.npz文件load的对象）
         #         self.transform.append(getattr(data_augmentations, transform))
-        self.transform = getattr(data_augmentations, self.config['transform'])() \
-            if self.config['transform'] is not None else None
 
-        self.target_transform = trans.ToTensor()
-        self.train_dl, self.val_dl, self.dataset_name, self.num_classes = \
+        self.init_transform()
+        self.train_dl, self.test_dl, self.val_dl, self.dataset_name, self.num_classes = \
             get_dataloader_datasetname_numclasses(
                 root=self.dataset_root,
                 dataset=self.dataset, feature_method=self.feature_method, batch_size=self.batch_size,
                 shuffle=self.shuffle, transform=self.transform, target_transform=self.target_transform,
-                train_csv_file=self.train_csv_file, test_csv_file=self.test_csv_file)
+                train_csv_file=self.train_csv_file, test_csv_file=self.test_csv_file, val_csv_file=self.val_csv_file)
+        if self.val_dl == None:
+            # 李代桃僵
+            self.val_dl = self.test_dl
+            self.test_dl = None
+        
         self.loss_func = eval(self.config['loss_func']).to(device)  # 损失函数实例
         self.model = eval(self.config['model']).to(device)  # 模型实例
         self.opt = eval(self.config['optim'])  # 优——化器实例
         # self.config['writer'] = eval(self.config['writer'])
         assert isinstance(self.model, torch.nn.Module)
-        self.lr_scheduler = eval(self.config['lr_scheduler']) if 'lr_scheduler' in self.config else None
+        self.lr_scheduler = eval(
+            self.config['lr_scheduler']) if 'lr_scheduler' in self.config else None
         assert isinstance(self.loss_func, nn.modules.loss._Loss)
         # assert ismethod(config['optim'], type(torch.nn.modules))
 
+    def init_transform(self):
+        def _get_transformer(transform):
+            res = None
+            if transform is not None:
+                if transform in ['PacketLoss', 'ChangeRTT', 'TimeShift']:
+                    res = getattr(data_augmentations, transform)()
+                else:
+                    res = eval(transform)
+            return res
+
+        self.transform = _get_transformer(self.config['transform'])
+        self.target_transform = _get_transformer(self.config['target_transform']) if self.config[
+            'target_transform'] is not None else torch.LongTensor
+
     def archive(self):
         # 配置保存
-        lr_scheduler = self.config['lr_scheduler'].split('(')[0] if self.lr_scheduler else ''
+        lr_scheduler = self.config['lr_scheduler'].split(
+            '(')[0] if self.lr_scheduler else ''
         checkpoint_folder_name_ = self.model.name() \
-                                  + '-' + self.dataset_name \
-                                  + '-' + self.config['optim'].split('(')[0].split('.')[1] \
-                                  + '-' + lr_scheduler \
-                                  + '-' + get_time()
+            + '-' + self.dataset_name \
+            + '-' + self.config['optim'].split('(')[0].split('.')[1] \
+            + '-' + lr_scheduler \
+            + '-' + get_time()
 
         self.config['checkpoint_folder_name'] = checkpoint_folder_name_
         self.folder = f"./checkpoints/{self.config['checkpoint_folder_name']}"
@@ -222,10 +314,14 @@ class Trainer:
         # save_config_to_yaml(self.config, f"checkpoints/{self.config['checkpoint_folder_name']}/config.yaml")
 
     def init_logger(self):
-        self.valid_acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_acc'))
-        self.train_acc_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_acc'))
-        self.train_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'train_loss'))
-        self.valid_loss_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'valid_loss'))
+        self.valid_acc_logger = SummaryWriter(
+            log_dir=os.path.join(self.folder, 'valid_acc'))
+        self.train_acc_logger = SummaryWriter(
+            log_dir=os.path.join(self.folder, 'train_acc'))
+        self.train_loss_logger = SummaryWriter(
+            log_dir=os.path.join(self.folder, 'train_loss'))
+        self.valid_loss_logger = SummaryWriter(
+            log_dir=os.path.join(self.folder, 'valid_loss'))
         self.lr_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'lr'))
         # if self.debug:
         #     self.gard_logger = SummaryWriter(log_dir=os.path.join(self.folder, 'grad'))
@@ -261,10 +357,14 @@ class Trainer:
                 self.save()
                 self.write_output()
                 # 记录输出到tensorboard
-                self.valid_acc_logger.add_scalar('data', valid_epoch_acc, epoch)
-                self.train_acc_logger.add_scalar('data', train_epoch_acc, epoch)
-                self.valid_loss_logger.add_scalar('data', valid_epoch_loss, epoch)
-                self.train_loss_logger.add_scalar('data', train_epoch_loss, epoch)
+                self.valid_acc_logger.add_scalar(
+                    'data', valid_epoch_acc, epoch)
+                self.train_acc_logger.add_scalar(
+                    'data', train_epoch_acc, epoch)
+                self.valid_loss_logger.add_scalar(
+                    'data', valid_epoch_loss, epoch)
+                self.train_loss_logger.add_scalar(
+                    'data', train_epoch_loss, epoch)
                 self.lr_logger.add_scalar('data', cur_lr, epoch)
 
     def save(self):
@@ -302,3 +402,42 @@ class Trainer:
             if param.grad is not None:
                 tqdm.write(f'Parameter: {name}')
                 tqdm.write(f'Gradient: {param.grad}')
+
+    def test(self):
+        self.model.eval()
+        with torch.no_grad():
+            losses = 0
+            corrects = 0
+            # for feature, label in tqdm(self.val_dl, leave=False):
+            for feature, label in tqdm(self.test_dl, leave=False):
+                feature = feature.to(device)
+                label = label.to(device)
+                if self.model.name() == 'PureClassifier':
+                    # [256,1,9000] -> [256,9000] (Linear Layer对输入的形状要求: [batch_size,size])
+                    feature = feature.squeeze(1)
+                # CNN对输入的形状要求:[batch_size,n_channels,height,width]
+                out = self.model(feature)  # 没经过 softmax
+                pre = nn.Softmax()(out).argmax(dim=1)
+                onehot_label = one_hot(
+                    label, num_classes=self.num_classes).float()
+
+                onehot_label = onehot_label.squeeze(1).float()
+                loss = self.loss_func(out, onehot_label)
+                losses += loss.cpu().item()
+                if len(pre.shape) > len(label.shape):
+                    pre = pre.squeeze()
+                elif len(pre.shape) < len(label.shape):
+                    pre = pre.unsqueeze(1)
+                self.test_acc(label, pre)
+                # corrects += (label == pre).sum()
+
+            acc = self.test_acc.compute()
+            self.test_acc.reset()
+            print(f'test_acc: {acc.cpu().item()}')
+            # write test acc to output.csv
+            csvfile = open(os.path.join(
+                'checkpoints', self.config['checkpoint_folder_name'], 'output.csv'), 'a')
+            writer = csv.writer(csvfile)
+            writer.writerow([f'test_acc: {acc.cpu().item()}'])
+            csvfile.close()
+            return losses / len(self.test_dl), acc.cpu().item()

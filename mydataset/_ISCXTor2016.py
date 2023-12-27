@@ -106,7 +106,7 @@ class ISCX(BaseEIMTCFlowPicDataset):
 
 class SimpleDataset(Dataset):
     def __init__(self, dataset: str, feature_method: str, train: bool, root, transform: Optional[Callable] = None,
-                 target_transform: Optional[Callable] = None, custom_csv: str = None):
+                 target_transform: Optional[Callable] = torch.Tensor, custom_csv: str = None):
         """
         dataset: ISCXTor2016_tor, ISCXTor2016_nonTor, ISCXVPN2016_VPN
         feature_method : FlowPic, MyFlowPic, Joint, JointFeature
@@ -138,15 +138,16 @@ class SimpleDataset(Dataset):
         file_path = os.path.join(self.root, file_path)
         key = 'feature' if 'JointFeature' in self.feature_method else 'flowpic'
 
-        if self.transform is not None and self.train:  # 至少有一个是ToTensor
+        if self.train and self.transform is not None:  # 至少有一个是ToTensor
             # 自定义的transform，输入是.npz加载的对象，含有flowpic和info两部分
-            if self.transform.name in ['ChangeRTT', 'TimeShift', 'PacketLoss']:
+            if hasattr(self.transform, 'name') and self.transform.name in ['ChangeRTT', 'TimeShift', 'PacketLoss']:
                 feature = self.transform(np.load(file_path, allow_pickle=True))
             else:
                 # 内置的transform，输入是PIL.Image.Image
-                feature_array = np.load(file_path)[key].astype(np.float32)  # uint16 -> np.float32
-                feature_PILImg = Image.fromarray(feature_array)
-                feature = self.transform(feature_PILImg)
+                feature = np.load(file_path)[key].astype(np.float32)  # uint16 -> np.float32
+                feature = torch.Tensor(feature)
+                feature = feature.unsqueeze(0) # ColorJitter要求输入形状为(num_channels,H,W）
+                feature = self.transform(feature)
         else:
             feature = np.load(file_path, allow_pickle=True)[key].astype(np.float32)
         # if self.target_transform:
@@ -154,7 +155,7 @@ class SimpleDataset(Dataset):
         # label = self.target_transform(label)
 
         # feature = torch.FloatTensor(feature)  # dtype: torch.float32 # 这个放到transform里
-        label = torch.LongTensor([label])  # dtype: torch.int64 # TODO 这个放到transform里
+        label = self.target_transform([label])  # dtype: torch.int64 # TODO 这个放到transform里
 
         return feature, label
 

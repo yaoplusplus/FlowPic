@@ -1,0 +1,27 @@
+#有key无value的默认为None
+debug: False # debug模式下不保存信息
+grad: False # grad控制是否打印梯度信息
+batch_size: 128
+
+# 这个参数方便切换不同数据集，更加灵活
+dataset_root: '/home/cape/data/trace/new_processed' # 测试
+#dataset_root: '/home/cape/data/trace' # 测试old dataset
+
+dataset: VoIP_Video_Application_NonVPN
+# 使用的是不平衡的数据集
+feature_method: FlowPic_b_32_info # 这是长度60s的窗口、15秒不重叠，先划分后提取特征，经过平衡的数据集，test_radio=0.1
+#feature_method: JointFeature
+
+transform: #PacketLoss
+#target_transform: ToTensor
+shuffle: True
+epochs: 400
+
+loss_func: nn.CrossEntropyLoss()
+
+model: LeNet(self.num_classes) # PCA = None
+#model: FlowPicNet_adaptive(self.num_classes,liner1_in_feature=4500)
+#model: PureClassifier(num_classes=self.num_classes,in_features=9000,out_features=100)
+lr: 0.001
+#lr_scheduler: ReduceLROnPlateau(self.opt,mode='min',factor=0.8,patience=3)
+optim: optim.Adam(params=self.model.parameters(), lr=self.lr,betas=[0.9,0.999])

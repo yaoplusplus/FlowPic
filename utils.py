@@ -42,9 +42,9 @@ def compare_model_params(initial_params, trained_params):
             print(f"Parameter {name} has NOT been optimized.")
 
 
-def show_hist(hist: torch.Tensor):
+def show_hist(hist: torch.Tensor, size=32):
     plt.imshow(hist, cmap='binary', interpolation='nearest',
-               origin='lower', extent=[0, 1500, 0, 1500], )
+               origin='lower', extent=[0, size, 0, size], )
 
     plt.colorbar(label='Frequency')  # 添加颜色条，显示频率
     plt.title('2D Histogram')
@@ -121,7 +121,8 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
         # load hist and label
         # label = datasets[dataset]['classes'](split_file_path[-2])
         # [1500,1500] -> [1,1,1500,1500]
-        flowpic = torch.Tensor(np.load(file)['flowpic'].astype(float)).to(device).unsqueeze(dim=0).unsqueeze(dim=0)
+        flowpic = torch.Tensor(np.load(file)['flowpic'].astype(
+            float)).to(device).unsqueeze(dim=0).unsqueeze(dim=0)
         myflowpic = torch.Tensor(
             np.load(file.replace(feature_methods[0], feature_methods[1]))['flowpic'].astype(float)).to(
             device).unsqueeze(dim=0).unsqueeze(dim=0)
@@ -130,11 +131,14 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
         with torch.no_grad():
             flowpic_feature = feature_extractor.extractor(flowpic)
             myflowpic_feature = feature_extractor.extractor(myflowpic)
-            joint_fature = torch.concat([flowpic_feature, myflowpic_feature], dim=1)
+            joint_fature = torch.concat(
+                [flowpic_feature, myflowpic_feature], dim=1)
             # save file
-            save_path = os.path.join(root, dataset, folder_name, split_file_path[-2])
+            save_path = os.path.join(
+                root, dataset, folder_name, split_file_path[-2])
             os.makedirs(save_path, exist_ok=True)
-            np.savez_compressed(os.path.join(save_path, split_file_path[-1]), feature=joint_fature.cpu().numpy())
+            np.savez_compressed(os.path.join(
+                save_path, split_file_path[-1]), feature=joint_fature.cpu().numpy())
 
 
 if __name__ == '__main__':

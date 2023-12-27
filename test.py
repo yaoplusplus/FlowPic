@@ -1,5 +1,6 @@
-import ast
 import os
+import ast
+import csv
 import time
 from typing import Dict
 import PIL.Image as Image
@@ -80,6 +81,12 @@ def test_mytransform():
     pass
 
 
+def show_npzs(file):
+    obj = np.load(file, allow_pickle=True)
+    # print(file)
+    show_hist(obj['flowpic'])
+
+
 def test_npz_file(mode='info'):
     file = '/home/cape/data/trace/new_processed/VoIP_Video_Application_NonVPN/FlowPicOverlapped_32_train/Hangouts_VoIP/flowpic-0-10.0.2.15-49420-74.125.226.164-443-6-src2dst.npz'
     if mode == 'info':
@@ -134,5 +141,9 @@ def test_LeNet_MiniFlowPicNet():
 
 
 if __name__ == '__main__':
-    test_LeNet_MiniFlowPicNet()
-    pass
+    base = '/home/cape/code/FlowPic-main/datasets/Video_VoIP/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins'
+    for index, row in enumerate(csv.reader(open('/home/cape/code/FlowPic-main/datasets/Video_VoIP/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/balanced_metadata.csv', 'r'))):
+        if index != 0:
+            print(row)
+            file = row[0]
+            show_npzs(os.path.join(base, file))
