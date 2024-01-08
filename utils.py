@@ -147,7 +147,7 @@ if __name__ == '__main__':
     nonTor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_nonTor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-16/0.8582.pt'
     vpn_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-08_16-53-26/0.9182.pt'
     app_model = ''
-    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='VoIP_Video_Application_NonVPN',
+    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='VoIP_Video',
                         feature_methods=['FlowPic', 'MyFlowPic'],
                         para_dict=app_model,
                         feature_extractor='FlowPicNet', folder_name='JointFeature_trained_app_model')

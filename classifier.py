@@ -59,11 +59,14 @@ class FlowPicNet(nn.Module):
             return x
 
     def name(self):
-        base = 'FlowPicNet'
-        return base
+        return 'FlowPicNet'
 
 
 class PureClassifier(nn.Module):
+    """
+    这是为了和特征提取器一起使用的
+    """
+
     def __init__(self, in_features, out_features, num_classes):
         super().__init__()
         self.num_classes = num_classes
@@ -92,7 +95,7 @@ class LeNet(nn.Module):
         )
         self.fc = nn.Sequential(
             # nn.Linear(16 * 4 * 4, 120),#28
-            nn.Linear(16 * 5 * 5, 120),#32
+            nn.Linear(16 * 5 * 5, 120),  # 32
             nn.Sigmoid(),
             nn.Linear(120, 84),
             nn.Sigmoid(),
@@ -103,6 +106,7 @@ class LeNet(nn.Module):
         feature = self.conv(img)
         output = self.fc(feature.view(img.shape[0], -1))
         return output
+
     def name(self):
         return 'LeNet_32'
 
@@ -110,21 +114,21 @@ class LeNet(nn.Module):
 class FlowPicNet_adaptive(FlowPicNet):
     """
     可以修改self.linear1的in_features的大小，以适应不同的输入尺寸
-    3000*1500 -> 9000
-    1500*1500 -> 4500
-    256*256   -> 90
+    3000*1500 : 9000
+    1500*1500 : 4500
+    256*256   : 90
     """
+
+    # '1500' 意为 '1500*1500'
 
     def __init__(self, num_classes, show_temp_out=False, liner1_in_feature=4500):
         super().__init__(num_classes=num_classes, show_temp_out=show_temp_out)
-        self.linear1 = Sequential(Linear(in_features=liner1_in_feature, out_features=64), ReLU(), Dropout(0.5))
+        self.liner1_in_feature_str = {9000: '3000*3000', 4500: '1500', 90: '256'}
+        self.liner1_in_feature = liner1_in_feature
+        self.linear1 = Sequential(Linear(in_features=self.liner1_in_feature, out_features=64), ReLU(), Dropout(0.5))
 
-
-def resnet(num_classes):
-    net = models.resnet18(weights=None)
-    net.conv1 = Conv2d(in_channels=1, out_channels=64, kernel_size=7, stride=2, padding=2, bias=False)
-    net.fc = Linear(in_features=512, out_features=num_classes, bias=True)
-    return net
+    def name(self):
+        return f'FlowPicNet_{self.liner1_in_feature_str[self.liner1_in_feature]}'
 
 
 def reduce_dim(x, dst_dim):
@@ -193,8 +197,8 @@ class MiniFlowPicNet_32(nn.Module):
         # PCA降维 TODO batch_size低于dis_dim的batch，就不进行降维了，这意味着，后面的两个全连接层。。
         if self.PCA:
             x = self.PCA(x.squeeze(0), dst_dim=self.PCA_dst_dim)
-        if self.show_temp_out:
-            print('after reduce_dim: ', x.shape)
+            if self.show_temp_out:
+                print('after reduce_dim: ', x.shape)
         x = self.linear1(x)
         if self.show_temp_out:
             print('after linear1: ', x.shape)
@@ -208,11 +212,24 @@ class MiniFlowPicNet_32(nn.Module):
         return 'FlowPicNet_32'
 
 
-class JointFlowPicNet(nn.Module):
-    pass
+class MiniFlowPicNet_adaptive(MiniFlowPicNet_32):
+    def __init__(self, num_classes, show_temp_out=False, liner1_in_feature=400):
+        super().__init__(num_classes=num_classes, show_temp_out=show_temp_out)
+        self.liner1_in_feature = liner1_in_feature
+        # 400：‘32’意味着 32*32的输入下，liner1_in_feature应该是400
+        self.liner1_in_feature_str = {1040: '64*32', 400: '32'}
+        # 修改linear1参数
+        self.linear1 = Sequential(Linear(in_features=self.liner1_in_feature, out_features=120), ReLU(),
+                                  Linear(in_features=120, out_features=84), ReLU(),
+                                  Dropout(0.5))
+
+    def name(self):
+        return f'MiniFlowPicNet_{self.liner1_in_feature_str[self.liner1_in_feature]}'
 
 
 if __name__ == '__main__':
     # 测试模型输出
-
+    model = MiniFlowPicNet_adaptive(num_classes=10, show_temp_out=True, liner1_in_feature=1040)
+    input = torch.rand([64, 1, 64, 32])
+    print(model(input))
     pass

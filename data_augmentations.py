@@ -132,7 +132,6 @@ class ChangeRTT(BasicTransform):
         # 修改时间序列，重新就修改后的(time_stamp,size) 元组排序
         for i in range(len(self.sizes)):
             a = np.random.uniform(*self.factor)
-            # TODO 针对相对时间还是绝对时间进行transform
             # 绝对时间
             self.time_stamps[i] = self.time_stamps[i] * a
 

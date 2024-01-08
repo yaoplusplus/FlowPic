@@ -154,8 +154,8 @@ class SimpleDataset(Dataset):
         # label = np.array([[label]])
         # label = self.target_transform(label)
 
-        # feature = torch.FloatTensor(feature)  # dtype: torch.float32 # 这个放到transform里
-        label = self.target_transform([label])  # dtype: torch.int64 # TODO 这个放到transform里
+        # feature = torch.FloatTensor(feature)  # dtype: torch.float32
+        label = self.target_transform([label])  # dtype: torch.int64 
 
         return feature, label
 
@@ -219,7 +219,7 @@ class SimpleSplitDataset(Dataset):
         # label = self.target_transform(label)
 
         # feature = torch.FloatTensor(feature)  # dtype: torch.float32 # 这个放到transform里
-        label = torch.LongTensor([label])  # dtype: torch.int64 # TODO 这个放到transform里
+        label = torch.LongTensor([label])  # dtype: torch.int64
 
         return feature, label
 

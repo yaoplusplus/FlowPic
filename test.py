@@ -65,7 +65,6 @@ def test_mytransform():
     # file = '/home/cape/data/trace/new_processed/VoIP_Video_Application_NonVPN/FlowPicOverlapped_32_train/Hangouts_VoIP/flowpic-0-10.0.2.15-49421-173.194.123.98-443-6-src2dst.npz'
     file = '/home/cape/data/trace/new_processed/VoIP_Video_Application_NonVPN/FlowPicOverlapped_32_train/Buster_VoIP/flowpic-0-131.202.240.87-17208-131.202.240.242-62838-17-src2dst.npz'
     obj = np.load(file, allow_pickle=True)
-    # TODO 目前来看，ChangeRTT没什么问题, 找其余问题
     show_hist(obj['flowpic'])
     print(obj['flowpic'].sum())
     transformed_pic = transform(obj)
@@ -83,8 +82,22 @@ def test_mytransform():
 
 def show_npzs(file):
     obj = np.load(file, allow_pickle=True)
-    # print(file)
-    show_hist(obj['flowpic'])
+    # show_hist(obj['flowpic'])
+    if 'ChangeRTT' not in file:
+        info = (obj['info'].tolist())  # 这样会得到字典-神奇诶
+        # print(info)
+        ts = info['ts']
+        sizes = info['sizes']
+        print(sizes)
+        # print(list(ts / ts[-1] * 1500))
+        # print(type(info))
+    else:
+        info = obj['info'].tolist()
+        # print(info['time_stamps'])
+        sizes = info['sizes']
+        print(sizes)
+        # print(type(info))
+    print('*' * 20)
 
 
 def test_npz_file(mode='info'):
@@ -141,9 +154,7 @@ def test_LeNet_MiniFlowPicNet():
 
 
 if __name__ == '__main__':
-    base = '/home/cape/code/FlowPic-main/datasets/Video_VoIP/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins'
-    for index, row in enumerate(csv.reader(open('/home/cape/code/FlowPic-main/datasets/Video_VoIP/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/balanced_metadata.csv', 'r'))):
-        if index != 0:
-            print(row)
-            file = row[0]
-            show_npzs(os.path.join(base, file))
+    file1 = '/home/cape/code/FlowPic-main/datasets/Traffic_categorization/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/browsing/browsing2-1-10.152.152.11-37387-65.61.34.87-443-0.npz'
+    file2 = '/home/cape/code/FlowPic-main/datasets/Traffic_categorization/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/browsing/browsing2-1-10.152.152.11-37387-65.61.34.87-443-0-ChangeRTT_[0.9, 1.2]-0.npz'
+    show_npzs(file1)
+    show_npzs(file2)
