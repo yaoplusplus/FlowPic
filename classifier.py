@@ -159,10 +159,6 @@ class MiniFlowPicNet_32(nn.Module):
         # 6*10*10
         self.drop1 = Dropout2d(0.25)
         self.maxpool2 = MaxPool2d(kernel_size=2)
-        # 6*5*5
-        # paper里提到了PAC
-        self.PCA = None
-        # self.PCA = None
         self.flatten = Flatten()
         self.linear1 = Sequential(Linear(in_features=400, out_features=120), ReLU())
         self.linear2 = Sequential(Linear(in_features=120, out_features=84), ReLU())
