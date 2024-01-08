@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
-from torch.nn import Conv2d, MaxPool2d, Flatten, Linear, Dropout, ReLU, Sequential
+from torch.nn import Conv2d, MaxPool2d, Flatten, Linear, Dropout, ReLU, Sequential, Dropout2d, Dropout1d
 import torchvision.models as models
 from pprint import pprint
 from sklearn.decomposition import PCA
+from torchsummary import summary
 
 
 class FlowPicNet(nn.Module):
@@ -20,7 +21,7 @@ class FlowPicNet(nn.Module):
         self.conv1 = Sequential(Conv2d(in_channels=1, out_channels=10, kernel_size=10, stride=5, padding=4), ReLU())
         self.maxpool1 = MaxPool2d(kernel_size=2)
         self.conv2 = Sequential(Conv2d(in_channels=10, out_channels=20, kernel_size=10, stride=5, padding=4), ReLU())
-        self.drop1 = Dropout(0.25)
+        self.drop1 = Dropout2d(0.25)
         self.maxpool2 = MaxPool2d(kernel_size=2)
         self.flatten = Flatten()
         self.linear1 = Sequential(Linear(in_features=4500, out_features=64), ReLU(), Dropout(0.5))
@@ -156,56 +157,30 @@ class MiniFlowPicNet_32(nn.Module):
         self.conv2 = Sequential(Conv2d(in_channels=6, out_channels=16, kernel_size=9, stride=1, padding=2),
                                 ReLU())
         # 6*10*10
-        self.drop1 = Dropout(0.25)
+        self.drop1 = Dropout2d(0.25)
         self.maxpool2 = MaxPool2d(kernel_size=2)
         # 6*5*5
         # paper里提到了PAC
         self.PCA = None
         # self.PCA = None
         self.flatten = Flatten()
-        # 一言难尽啊，因为batch_size=128时，
-        if self.PCA:
-            self.PCA_dst_dim = 120
-            self.linear1 = Sequential(Linear(in_features=120, out_features=84), ReLU(), Dropout(0.5))
-            self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
-        else:
-            self.linear1 = Sequential(Linear(in_features=400, out_features=120), ReLU(),
-                                      Linear(in_features=120, out_features=84), ReLU(),
-                                      Dropout(0.5))
-            self.linear2 = Sequential(Linear(in_features=84, out_features=self.num_classes))
+        self.linear1 = Sequential(Linear(in_features=400, out_features=120), ReLU())
+        self.linear2 = Sequential(Linear(in_features=120, out_features=84), ReLU())
+        self.drop2 = Dropout1d(0.5)
+        self.linear3 = Sequential(Linear(in_features=84, out_features=self.num_classes))
 
     def forward(self, x):
         x = self.conv1(x)
-        if self.show_temp_out:
-            print('after conv1: ', x.shape)
         x = self.maxpool1(x)
-        if self.show_temp_out:
-            print('after maxpool1: ', x.shape)
         x = self.conv2(x)
-        if self.show_temp_out:
-            print('after conv2: ', x.shape)
         x = self.drop1(x)
-
         x = self.maxpool2(x)
-        if self.show_temp_out:
-            print('after maxpool2: ', x.shape)
         # 展平，解决batch——bug的地方
         x = self.flatten(x)
-        if self.show_temp_out:
-            print('after flatten: ', x.shape)
-        assert x.shape[1] >= 120  # 实际上就是batch_size，因为要降低维度到120，函数要求任意维度都要大于120
-        # PCA降维 TODO batch_size低于dis_dim的batch，就不进行降维了，这意味着，后面的两个全连接层。。
-        if self.PCA:
-            x = self.PCA(x.squeeze(0), dst_dim=self.PCA_dst_dim)
-            if self.show_temp_out:
-                print('after reduce_dim: ', x.shape)
         x = self.linear1(x)
-        if self.show_temp_out:
-            print('after linear1: ', x.shape)
         x = self.linear2(x)
-        if self.show_temp_out:
-            print('after linear2: ', x.shape)
-
+        x = self.drop2(x)
+        x = self.linear3(x)
         return x
 
     def name(self):
@@ -219,9 +194,7 @@ class MiniFlowPicNet_adaptive(MiniFlowPicNet_32):
         # 400：‘32’意味着 32*32的输入下，liner1_in_feature应该是400
         self.liner1_in_feature_str = {1040: '64*32', 400: '32'}
         # 修改linear1参数
-        self.linear1 = Sequential(Linear(in_features=self.liner1_in_feature, out_features=120), ReLU(),
-                                  Linear(in_features=120, out_features=84), ReLU(),
-                                  Dropout(0.5))
+        self.linear1 = Sequential(Linear(in_features=self.liner1_in_feature, out_features=120), ReLU())
 
     def name(self):
         return f'MiniFlowPicNet_{self.liner1_in_feature_str[self.liner1_in_feature]}'
@@ -229,7 +202,6 @@ class MiniFlowPicNet_adaptive(MiniFlowPicNet_32):
 
 if __name__ == '__main__':
     # 测试模型输出
-    model = MiniFlowPicNet_adaptive(num_classes=10, show_temp_out=True, liner1_in_feature=1040)
-    input = torch.rand([64, 1, 64, 32])
-    print(model(input))
+    model = MiniFlowPicNet_adaptive(num_classes=5, liner1_in_feature=400).to('cuda')
+    summary(model,(1,32,32))
     pass
