@@ -1,15 +1,18 @@
 import glob
 import os
 import time
-from typing import List
+from typing import List, TypeVar
 
 import numpy as np
 import torch
 import yaml
 from matplotlib import pyplot as plt
+from torch import Tensor
 from tqdm import tqdm
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+MAX_PACKET_SIZE = 1500
+NDArray = np.ndarray
 
 
 def load_config_from_yaml(file_path):
@@ -46,8 +49,10 @@ def show_hist(hist: torch.Tensor, size=32):
     plt.imshow(hist, cmap='binary', interpolation='nearest',
                origin='lower', extent=[0, size, 0, size], )
 
-    plt.colorbar(label='Frequency')  # 添加颜色条，显示频率
-    plt.title('2D Histogram')
+    # plt.colorbar(label='Frequency')  # 添加颜色条，显示频率
+    # plt.title('2D Histogram')
+    plt.axis('off')
+    plt.savefig(f'/home/cape/temp/show/flowpic-{sum(hist[0])}.png', bbox_inches='tight', pad_inches=0.0)
 
     plt.show()
 
@@ -175,3 +180,45 @@ def print_hist(hist):
     nonzero_indexes = np.nonzero(hist)
     for x, y in zip(nonzero_indexes[0], nonzero_indexes[1]):
         print(x, y, hist[x][y])
+
+
+def get_flowpic(
+        timetofirst: NDArray,
+        pkts_size: NDArray,
+        dim: int = 32,
+        max_block_duration: int = 15,
+) -> NDArray:
+    """Generate a Flowpic from time series
+
+    Arguments:
+        timetofirst: time series (in seconds) of the intertime between a packet and the first packet of the flow
+        pkts_size: time series of the packets size
+        dim: pixels size of the output representation
+        max_block_duration: how many seconds of the input time series to process
+
+    Return:
+        a 2d numpy array encoding a flowpic
+    """
+    indexes = np.where(timetofirst < max_block_duration)[0]
+    timetofirst = timetofirst[indexes]
+    pkts_size = np.clip(pkts_size[indexes], a_min=0, a_max=MAX_PACKET_SIZE)
+
+    timetofirst_norm = (timetofirst / max_block_duration) * dim
+    # 这里居然对size进行了归一化，这是可以的吗
+    pkts_size_norm = (pkts_size / MAX_PACKET_SIZE) * dim
+    bins = range(dim + 1)
+    mtx, _, _ = np.histogram2d(x=pkts_size_norm, y=timetofirst_norm, bins=(bins, bins))
+
+    # Quote from Sec.2.1 of the IMC22 paper
+    # > If more than max value (255) packets of
+    # > a certain size arrive in a time slot,
+    # > we set the pixel value to max value
+    # 这里的astype("uint8")导致了模型forward的失败
+    mtx = np.clip(mtx, a_min=0, a_max=255).astype(np.float32)
+    return mtx
+
+
+def int2one_hot(input: int, num_classes: int) -> Tensor:
+    res = torch.zeros(num_classes, dtype=torch.float32)
+    res[input] = 1
+    return res
