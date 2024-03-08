@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import mydataset
 from mydataset import ISCX, SimpleDataset
 from trainer import Trainer
-from utils import load_config_from_yaml, save_config_to_yaml, get_time, device, print_hist, show_hist, map_hist
+from utils import load_config_from_yaml, save_config_to_yaml, get_time, device, print_hist, show_hist, int2one_hot
 from trainer import get_dataloader_datasetname_numclasses
 
 import torchvision.transforms as trans
@@ -82,7 +82,7 @@ def test_mytransform():
 
 def show_npzs(file):
     obj = np.load(file, allow_pickle=True)
-    # show_hist(obj['flowpic'])
+    show_hist(obj['flowpic'])
     if 'ChangeRTT' not in file:
         info = (obj['info'].tolist())  # 这样会得到字典-神奇诶
         # print(info)
@@ -154,7 +154,4 @@ def test_LeNet_MiniFlowPicNet():
 
 
 if __name__ == '__main__':
-    file1 = '/home/cape/code/FlowPic-main/datasets/Traffic_categorization/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/browsing/browsing2-1-10.152.152.11-37387-65.61.34.87-443-0.npz'
-    file2 = '/home/cape/code/FlowPic-main/datasets/Traffic_categorization/reg-DELTA_T=60-IMG_DIM=32-HISTOGRAM=set_bins/browsing/browsing2-1-10.152.152.11-37387-65.61.34.87-443-0-ChangeRTT_[0.9, 1.2]-0.npz'
-    show_npzs(file1)
-    show_npzs(file2)
+    print(int2one_hot(4, 5))

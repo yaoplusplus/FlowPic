@@ -126,7 +126,6 @@ class SimpleDataset(Dataset):
             self.root = self.root + '_' + 'train' if self.train else self.root + '_' + 'test'
         self.custom_csv = custom_csv
         self.load_data()
-        self.num_classes = get_num_classes(self.root)  # 因为csv分散到两个文件夹了，此处逻辑伴随改变
         self.transform = transform
         self.target_transform = target_transform
 
@@ -146,7 +145,7 @@ class SimpleDataset(Dataset):
                 # 内置的transform，输入是PIL.Image.Image
                 feature = np.load(file_path)[key].astype(np.float32)  # uint16 -> np.float32
                 feature = torch.Tensor(feature)
-                feature = feature.unsqueeze(0) # ColorJitter要求输入形状为(num_channels,H,W）
+                feature = feature.unsqueeze(0)  # ColorJitter要求输入形状为(num_channels,H,W）
                 feature = self.transform(feature)
         else:
             feature = np.load(file_path, allow_pickle=True)[key].astype(np.float32)
@@ -159,15 +158,22 @@ class SimpleDataset(Dataset):
 
         return feature, label
 
+    @property
+    def num_classes(self):
+        return get_num_classes(self.root)
+
     def name(self):
         return '_'.join([self.dataset, self.feature_method])
 
     def load_data(self):
         if self.custom_csv:
+            # 重新设置root
             file = self.custom_csv
+            self.root = os.path.dirname(self.custom_csv)
         else:
             file = 'train.csv' if self.train else 'test.csv'
-        self.data = pd.read_csv(os.path.join(self.root, file))
+            file = os.path.join(self.root, file)
+        self.data = pd.read_csv(file)
 
 
 class SimpleSplitDataset(Dataset):

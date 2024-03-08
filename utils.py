@@ -146,19 +146,6 @@ def make_joint_features(root: str, dataset: str, feature_methods: List, feature_
                 save_path, split_file_path[-1]), feature=joint_fature.cpu().numpy())
 
 
-if __name__ == '__main__':
-    tor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_tor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-28/0.8443.pt'
-    # JointFeature_trained_nonTor_model
-    nonTor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_nonTor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-16/0.8582.pt'
-    vpn_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-08_16-53-26/0.9182.pt'
-    app_model = ''
-    make_joint_features(root='/home/cape/data/trace/new_processed', dataset='VoIP_Video',
-                        feature_methods=['FlowPic', 'MyFlowPic'],
-                        para_dict=app_model,
-                        feature_extractor='FlowPicNet', folder_name='JointFeature_trained_app_model')
-    pass
-
-
 def map_hist(hist):
     nonzero_indexes = np.nonzero(hist)
     for x, y in zip(nonzero_indexes[0], nonzero_indexes[1]):
@@ -218,7 +205,45 @@ def get_flowpic(
     return mtx
 
 
+def get_flowpic_tensor(
+        timetofirst: NDArray,
+        pkts_size: NDArray,
+        dim: int = 32,
+        max_block_duration: int = 15
+) -> torch.Tensor:
+    # 将 NumPy 数组转换为 PyTorch 张量
+    timetofirst_tensor = torch.tensor(timetofirst, dtype=torch.float32)
+    pkts_size_tensor = torch.tensor(np.clip(pkts_size, a_min=0, a_max=MAX_PACKET_SIZE), dtype=torch.float32)
+
+    # 归一化
+    timetofirst_norm = (timetofirst_tensor / max_block_duration) * dim
+    pkts_size_norm = (pkts_size_tensor / MAX_PACKET_SIZE) * dim
+
+    # 使用 PyTorch 的 histc 函数替代 np.histogram2d
+    histogram_tensor = torch.histc2d(x=timetofirst_norm, y=pkts_size_norm, bins=dim + 1)
+    # Clip 和 astype 操作
+    # histogram_clipped = np.clip(histogram_np, a_min=0, a_max=255).astype(np.float32)
+    return histogram_tensor
+
+
 def int2one_hot(input: int, num_classes: int) -> Tensor:
     res = torch.zeros(num_classes, dtype=torch.float32)
     res[input] = 1
     return res
+
+
+if __name__ == '__main__':
+    # tor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_tor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-28/0.8443.pt'
+    # # JointFeature_trained_nonTor_model
+    # nonTor_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXTor2016_nonTor_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-09_01-29-16/0.8582.pt'
+    # vpn_model = '/home/cape/code/FlowPic/checkpoints/FlowPicNet-ISCXVPN2016_VPN_MyFlowPic-Adam-ReduceLROnPlateau-2023-11-08_16-53-26/0.9182.pt'
+    # app_model = ''
+    # make_joint_features(root='/home/cape/data/trace/new_processed', dataset='VoIP_Video',
+    #                     feature_methods=['FlowPic', 'MyFlowPic'],
+    #                     para_dict=app_model,
+    #                     feature_extractor='FlowPicNet', folder_name='JointFeature_trained_app_model')
+    # 测试反向传播
+    times = np.random.random(size=1110)
+    pkts_size = np.random.uniform(low=0, high=1500, size=1110)
+    torch.histogramdd(times, pkts_size, bins=[33, 33])
+    pass

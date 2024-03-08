@@ -144,6 +144,15 @@ def reduce_dim(x, dst_dim):
     return torch.mm(x, V)
 
 
+class CustomFlatten(nn.Module):
+    def forward(self, x):
+        if len(x.shape) == 4:
+            return x.view(x.shape[0], -1)
+        else:
+            # len(x.shape) == 3
+            return x.view(-1)
+
+
 class MiniFlowPicNet_32(nn.Module):
     def __init__(self, num_classes, show_temp_out=False):
         super().__init__()
@@ -159,7 +168,7 @@ class MiniFlowPicNet_32(nn.Module):
         # 6*10*10
         self.drop1 = Dropout2d(0.25)
         self.maxpool2 = MaxPool2d(kernel_size=2)
-        self.flatten = Flatten()
+        self.flatten = CustomFlatten()
         self.linear1 = Sequential(Linear(in_features=400, out_features=120), ReLU())
         self.linear2 = Sequential(Linear(in_features=120, out_features=84), ReLU())
         self.drop2 = Dropout1d(0.5)
@@ -169,6 +178,7 @@ class MiniFlowPicNet_32(nn.Module):
         x = self.conv1(x)
         x = self.maxpool1(x)
         x = self.conv2(x)
+        # FIXME 搞清楚，到底要不要dropout（已知dropout导致train_acc偏低）
         x = self.drop1(x)
         x = self.maxpool2(x)
         # 展平，解决batch——bug的地方
@@ -198,6 +208,8 @@ class MiniFlowPicNet_adaptive(MiniFlowPicNet_32):
 
 if __name__ == '__main__':
     # 测试模型输出
-    model = MiniFlowPicNet_adaptive(num_classes=5, liner1_in_feature=400).to('cuda')
-    summary(model,(1,32,32))
+    # model = MiniFlowPicNet_adaptive(num_classes=5, liner1_in_feature=400).to('cuda')
+    # summary(model,(1,32,32))
+    model = LeNet(num_classes=10).to('cuda')
+    summary(model, (1, 32, 32))
     pass
